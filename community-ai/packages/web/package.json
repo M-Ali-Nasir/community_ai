@@ -13,7 +13,8 @@
     "@community-ai/protocol": "*",
     "@mlc-ai/web-llm": "^0.2.79",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "trystero": "^0.25.3"
   },
   "devDependencies": {
     "@types/react": "^18.3.18",
