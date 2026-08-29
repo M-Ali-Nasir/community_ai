@@ -1,117 +1,213 @@
 <div align="center">
 
-# 🌐 Community AI
+<img src="dist/icon.png" alt="Community AI Logo" width="140" height="140" style="border-radius: 28px; box-shadow: 0 8px 30px rgba(0, 240, 210, 0.3);" />
 
-**Decentralized, Heterogeneous, Community-Powered Distributed AI Computing Network**
+# 🌐 Community AI (v1.0)
+
+**Decentralized, Heterogeneous, Zero-Knowledge AI Computing Mesh**
 
 [![Rust](https://img.shields.io/badge/Rust-1.80%2B-orange.svg?style=flat-square&logo=rust)](https://www.rust-lang.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue.svg?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-Apache--2.0-green.svg?style=flat-square)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS%20%7C%20Android%20%7C%20iOS%20%7C%20Web-purple.svg?style=flat-square)](#-cross-platform-architecture)
+[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Linux%20%7C%20Windows%20%7C%20macOS%20%7C%20iOS%20%7C%20Web-purple.svg?style=flat-square)](#-cross-platform-installation-guides-non-technical)
+[![P2P Mesh](https://img.shields.io/badge/Networking-P2P%20WebRTC%20%2B%20LAN%20Mesh-00f0d0.svg?style=flat-square)](#-how-the-p2p-mesh-works)
 
-*Transforming a collection of heterogeneous consumer devices (NVIDIA/AMD GPUs, Apple Silicon, CPUs, and mobile phones) into a single virtual distributed AI computing machine.*
+*Turn everyday consumer devices—smartphones, laptops, gaming PCs, and workstations—into a united, privacy-preserving distributed supercomputer for Large Language Model inference.*
 
 ---
 
 </div>
 
-## 📦 1-Click Ready-to-Install Image Files & Packages
-
-No developer commands needed! Pre-packaged distribution files are located in the `dist/` directory:
-
-| Platform | Package / File | How to Install & Run |
-| :--- | :--- | :--- |
-| **Android Phone / Tablet** | `dist/CommunityAI.apk` | **Direct Install**: Tap `CommunityAI.apk` on phone, or run `dist/install-to-android.sh` to auto-push via USB. |
-| **Ubuntu / Linux Desktop** | `dist/install-desktop.sh` | **1-Click Setup**: Registers the app into your Ubuntu dock & Desktop as `Community AI.desktop`. Double-click to launch! |
-| **Direct Desktop Launcher** | `dist/launch-app.sh` | **Standalone App**: Opens the modern AI Chat, Device Resources, and Worker Controls in a native standalone window. |
-
----
-
 ## 📌 Table of Contents
 
-- [Overview](#-overview)
-- [Key Features & Innovations](#-key-features--innovations)
-- [Core Architecture](#-core-architecture)
-- [Crate Workspace Structure](#-crate-workspace-structure)
-- [Cross-Platform Architecture](#-cross-platform-architecture)
-- [Dynamic Sharding & Placement Algorithm](#-dynamic-sharding--placement-algorithm)
-- [Resource Governor & UEPS](#-resource-governor--ueps)
-- [Getting Started](#-getting-started)
-  - [Prerequisites](#prerequisites)
-  - [1. Running the Rust Core Workspace](#1-running-the-rust-core-workspace)
-  - [2. Running the Cluster Simulator](#2-running-the-cluster-simulator)
-  - [3. Running the Native Worker Daemon](#3-running-the-native-worker-daemon)
-  - [4. Running the Web Coordinator & PWA](#4-running-the-web-coordinator--pwa)
-- [Platform Packaging & Testing](#-platform-packaging--testing)
-  - [Linux Automated Installer & Service](#-linux-automated-installer--systemd-service)
-  - [Android APK Build & JNI Native Bridge](#-android-apk-build--jni-native-bridge)
-- [Documentation & ADRs](#-documentation--adrs)
-- [Model Licensing & Policy](#-model-licensing--policy)
-- [Contributing](#-contributing)
-- [License](#-license)
+- [🚀 Quick Download Links](#-quick-download-links-ready-to-use)
+- [📱 Cross-Platform Installation Guides (Non-Technical)](#-cross-platform-installation-guides-non-technical)
+  - [Android (Phones & Tablets)](#-android-installation)
+  - [Linux / Ubuntu Desktop](#-linux--ubuntu-desktop-installation)
+  - [Windows](#-windows-installation)
+  - [macOS](#-macos-installation)
+  - [Web Browser / iOS (PWA)](#-web-browser--ios-pwa-installation)
+- [✨ Everything About the App](#-everything-about-the-app)
+  - [1. Intelligent AI Chat](#1-intelligent-ai-chat)
+  - [2. Privacy-First Cluster Network](#2-privacy-first-cluster-network)
+  - [3. Real-Time Device Telemetry](#3-real-time-device-telemetry)
+  - [4. Background Worker Controls & Resource Governor](#4-background-worker-controls--resource-governor)
+- [🔒 Zero-Knowledge Privacy & Security](#-zero-knowledge-privacy--security)
+- [🏛 Technical Architecture & Crate Workspace](#-technical-architecture--crate-workspace)
+- [🛠 Developer & Build Guide](#-developer--build-guide)
+- [📜 Model Licensing & Policy](#-model-licensing--policy)
+- [📄 License](#-license)
 
 ---
 
-## 🌟 Overview
+## 📦 Quick Download Links (Ready to Use)
 
-Modern LLM inference typically demands high-end datacenter GPUs (A100, H100). **Community AI** is an open-source decentralized computing protocol that enables everyday users to pool their spare GPU VRAM, CPU cycles, and RAM to collectively run flagship open-source models (e.g., `Qwen2.5-7B Instruct`, `Mistral-7B`).
+All pre-compiled packages and installation scripts are available directly in this repository in the [`dist/`](dist/) folder:
 
-### The Core Philosophy:
-- **No Full Model Downloads Required**: Nodes do not download entire multi-gigabyte models. The network dynamically splits models into verifiable transformer block shards.
-- **Zero-Friction Volunteer Experience**: The local owner's gaming, development, or daily tasks always have absolute priority. If a user moves their mouse, opens a heavy app, or goes on battery, compute is throttled or paused instantly.
-- **Network-Aware Clustering**: Pipelines are formed by minimizing pairwise network latency (RTT) rather than naive compute-only scoring.
-
----
-
-## 🚀 Key Features & Innovations
-
-- 🦀 **Unified Shared Rust Core**: 11 modular crates handling domain primitives, security, protocol, governance, model caching, scheduling, networking, and FFI.
-- 🧩 **Dynamic Layer Sharding**: Automatically partitions transformer layers into discrete `.shard` files verified with BLAKE3 cryptographic hashes.
-- ⚖️ **Replication Deficit Scoring**: On node join, the network calculates which layers have the fewest replicas and lowest peer latency to determine optimal shard placement.
-- 🛡️ **Zero-Trust Cryptography**: Every node generates an Ed25519 cryptographic identity to sign wire payloads and task responses.
-- ⚡ **Minimal-Hop Pipeline Scheduling**: Minimizes token hop round-trip times and calculates strict token-per-second latency ceilings.
-- 📱 **Universal Cross-Platform Support**: Native daemon for Linux, Windows, macOS, plus C-FFI / JNI / Swift bindings for Android and iOS, and WebGPU PWA for browsers.
+| Operating System | Package / Artifact | Direct Link | Installation Type |
+| :--- | :--- | :--- | :--- |
+| **Android** | `CommunityAI.apk` | [⬇️ Download Android APK](dist/CommunityAI.apk) | 1-Tap Mobile App Installer |
+| **Ubuntu / Linux** | `install-desktop.sh` | [⬇️ Run Desktop Installer](dist/install-desktop.sh) | 1-Click Desktop & Menu Shortcut |
+| **Ubuntu / Linux** | `launch-app.sh` | [⬇️ Run Direct Launcher](dist/launch-app.sh) | Standalone Native App Window |
+| **All Platforms (WAN)** | `start-wan-mesh.sh` | [⬇️ Start WAN Mesh Relay](dist/start-wan-mesh.sh) | Global Internet Mesh Relay |
+| **Web / Browser** | Web PWA Build | [🌐 Launch Web App](community-ai/packages/web/) | Zero-Install Instant WebGPU |
 
 ---
 
-## 🏛 Core Architecture
+## 📱 Cross-Platform Installation Guides (Non-Technical)
+
+### 🤖 Android Installation
+
+You can install Community AI directly on any Android phone or tablet (Android 8.0+):
+
+#### Option A: Direct Download & Install on Phone (Easiest)
+1. Download [`dist/CommunityAI.apk`](dist/CommunityAI.apk) directly to your Android device (via browser or file transfer).
+2. Tap the downloaded `.apk` file in your notifications or Downloads folder.
+3. If prompted by Android, tap **"Settings"** and toggle **"Allow from this source"** to enable app installation.
+4. Tap **"Install"**, then tap **"Open"**.
+5. The Community AI app will launch with full access to the decentralized AI mesh!
+
+#### Option B: 1-Click Install via USB (from Computer)
+1. Connect your Android phone to your computer via USB with **USB Debugging** enabled in Developer Options.
+2. Open terminal in the project folder and run:
+   ```bash
+   ./dist/install-to-android.sh
+   ```
+3. The script will automatically detect your phone, install the latest APK, and launch the app.
+
+---
+
+### 🐧 Linux / Ubuntu Desktop Installation
+
+For Ubuntu, Debian, Fedora, Arch, and other Linux distributions:
+
+#### Option A: 1-Click Desktop App Integration (Recommended)
+1. Run the desktop installer script:
+   ```bash
+   ./dist/install-desktop.sh
+   ```
+2. **Done!** The app is now permanently registered into your system:
+   - Search **"Community AI"** in your Ubuntu Application Menu / Dash.
+   - Or double-click the **"Community AI"** shortcut on your Desktop.
+
+#### Option B: Direct Launcher
+Launch the standalone application window immediately:
+```bash
+./dist/launch-app.sh
+```
+
+#### Option C: Persistent 24/7 Background Service (Headless or Always-On)
+To contribute idle computing power silently in the background via systemd:
+```bash
+sudo ./platform/linux/install.sh
+```
+- **Check Status**: `sudo systemctl status community-ai`
+- **View Live Logs**: `sudo journalctl -u community-ai -f`
+
+---
+
+### 🪟 Windows Installation
+
+1. **Web / PWA Standalone Mode**:
+   - Start or open the web dashboard in Google Chrome or Microsoft Edge (`http://localhost:5173` or your mesh IP).
+   - Click the **"Install App"** icon in the address bar (or menu $\rightarrow$ *Apps* $\rightarrow$ *Install Community AI*).
+   - Community AI will now run in its own dedicated, borderless window with desktop shortcuts.
+2. **Persistent Background Service**:
+   - Register the native daemon using Windows Service Controller with `platform/windows/service_config.json`.
+
+---
+
+### 🍎 macOS Installation
+
+1. **Web / PWA Standalone Mode**:
+   - Open the web interface in Safari or Google Chrome.
+   - In Safari: Click **File** $\rightarrow$ **Add to Dock**.
+2. **Background Daemon (Apple Silicon & Intel)**:
+   - Copy the launchd plist descriptor:
+     ```bash
+     cp platform/macos/com.community.ai.daemon.plist ~/Library/LaunchAgents/
+     launchctl load ~/Library/LaunchAgents/com.community.ai.daemon.plist
+     ```
+
+---
+
+### 🌐 Web Browser / iOS (PWA) Installation
+
+Community AI runs directly inside modern web browsers with WebGPU support:
+1. Open the web client on your iPhone, iPad, or Chromebook.
+2. On iOS (Safari): Tap the **Share** button $\rightarrow$ Tap **"Add to Home Screen"**.
+3. Launch Community AI from your home screen just like a native app.
+
+---
+
+## ✨ Everything About the App
+
+Community AI brings consumer-grade distributed intelligence to your fingertips through four unified tabs:
 
 ```
-                    ┌──────────────────────────────────────────────────────────┐
-                    │            COMMUNITY AI COORDINATOR / OVERLAY            │
-                    │   Registry • Workload Analyzer • Pipeline Planner • TLS  │
-                    └───────────────▲──────────────────────────▲───────────────┘
-                                    │                          │
-                                    │ QUIC / WebSocket         │ QUIC / WebSocket
-                                    │                          │
-                 ┌──────────────────┴──────────┐    ┌──────────┴──────────────────┐
-                 │     WORKER NODE A (HEAD)    │    │        WORKER NODE B        │
-                 │ ┌─────────────────────────┐ │    │ ┌─────────────────────────┐ │
-                 │ │ Shared Rust Core        │ │    │ │ Shared Rust Core        │ │
-                 │ │ Resource Governor       │ │    │ │ Resource Governor       │ │
-                 │ │ Shard 000..001 (Layers) │ │    │ │ Shard 002..003 (Layers) │ │
-                 │ └────────────┬────────────┘ │    │ └───────────▲─────────────┘ │
-                 │              │              │    │             │               │
-                 └──────────────┼──────────────┘    └─────────────┼───────────────┘
-                                └────── P2P Pipeline Token Stream ┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  🌐 Community AI       [● P2P Mesh: 4 Nodes Online]   [⚡ Contributing: ON] │
+├───────────────┬───────────────────┬───────────────────┬─────────────────────┤
+│  💬 AI Chat   │ 📊 Device Monitor │ ⚙️ Worker Control │ 🌐 Cluster Network  │
+└───────────────┴───────────────────┴───────────────────┴─────────────────────┘
 ```
+
+### 1. 💬 Intelligent AI Chat
+- **Real-Time Token Streaming**: Prompt the decentralized AI cluster and receive high-speed streaming responses.
+- **Staged Visual Progress**: Clear real-time status steps:
+  - 🔍 *Searching for capable peers in mesh...*
+  - ⚡ *Partitioning layers & allocating pooled VRAM across devices...*
+  - 🤖 *Generating tokens across cluster...*
+- **Visual Pipeline Inspector**: View how transformer layers are partitioned across participating devices in real time.
+
+### 2. 🌐 Privacy-First Cluster Network
+- **Zero Exposure of Personal Data**: Individual user information and device identities are never exposed to other peers.
+- **Aggregated Network Intelligence**:
+  - **Connected Mesh Peers**: Total nodes active in the swarm.
+  - **Active Contributors**: Nodes currently contributing compute resources.
+  - **Pooled VRAM / RAM Capacity**: Total combined memory available for model loading.
+  - **Cluster Tokens Streamed**: Total network throughput and jobs completed.
+- **Your Personal Token Account**:
+  - Live track of your **Available Balance**, **Tokens Earned** by contributing, and **Tokens Consumed** by prompts.
+  - Ready for decentralized ledger synchronization.
+- **Anonymized Activity Stream**: Real-time ticker of network jobs without displaying user identities.
+
+### 3. 📊 Real-Time Device Telemetry
+- **Hardware Dashboard**: Live monitoring of CPU cores, system RAM, GPU acceleration, and VRAM utilization.
+- **UEPS Metric (User Experience Preservation Score)**: Continuous 0–100% score calculating local device responsiveness.
+- **Thermal & Battery States**: Automatically detects AC power vs. battery mode to prevent battery drain on laptops and phones.
+
+### 4. ⚙️ Background Worker Controls & Resource Governor
+- **Master Contribution Switch**: Toggle background compute sharing on or off with a single click.
+- **Memory & Quota Sliders**: Set exact caps on how much RAM or VRAM the app is allowed to allocate (e.g., 2 GB, 4 GB).
+- **Intelligent Resource Governor**:
+  - Automatically pauses compute if you start playing a video game or open a heavy application.
+  - Immediately yields resources when moving on battery power.
 
 ---
 
-## 📦 Crate Workspace Structure
+## 🔒 Zero-Knowledge Privacy & Security
 
-The repository is built as a clean, decoupled Cargo workspace:
+Community AI is built from the ground up on zero-trust principles:
+1. **Cryptographic Node Identities**: Every device generates its own Ed25519 public/private keypair. Wire payloads and task completions are digitally signed.
+2. **BLAKE3 Layer Verification**: Model weights and transformer shards are validated using BLAKE3 cryptographic checksums before execution.
+3. **Anonymized Peer IDs**: In all chat visualizers and telemetry panels, peer node identities are masked (`Anonymous Peer #1`, `Head Cluster Peer`) so no user's private data is ever visible to others.
+4. **No Centralized Data Logging**: Chat prompts and activations are passed directly peer-to-peer over encrypted WebRTC DataChannels and local loops.
+
+---
+
+## 🏛 Technical Architecture & Crate Workspace
 
 ```
 crates/
-├── community-core          # Strong identifiers (NodeId, JobId, TaskId, ShardId) & errors
+├── community-core          # Strong identifiers (NodeId, JobId, TaskId) & domain primitives
 ├── community-security      # Ed25519 digital signatures, keypairs & BLAKE3 checksums
 ├── community-protocol      # Serde wire schemas (CapabilityProfile, PipelinePlan, TaskSpec)
 ├── community-governor      # Sub-second hardware monitors & User Experience Preservation (UEPS)
 ├── community-model-manager # Discrete layer sharder, LRU disk cache & placement scoring
 ├── community-runtime       # Abstract AIBackend trait for hardware-agnostic tensor execution
 ├── community-scheduler     # Workload analyzer, minimal-latency pipeline planner & failover
-├── community-network       # Thread-safe peer registry, heartbeat tracking & network loops
+├── community-network       # Thread-safe P2P swarm, mDNS/DHT discovery & network loops
 ├── community-daemon        # Native background worker daemon CLI for Windows / Linux / macOS
 ├── community-simulator     # Discrete event cluster simulator (tested with 10–1000 nodes)
 └── community-ffi           # C-FFI export library (cdylib/staticlib) for Android & iOS
@@ -119,167 +215,58 @@ crates/
 
 ---
 
-## 💻 Cross-Platform Architecture
-
-Platform integration descriptors live under `/platform`:
-
-| Platform | Integration Method | Configuration File |
-| :--- | :--- | :--- |
-| **Linux** | Systemd Background Service (`x86_64`, `aarch64`) | `platform/linux/community-ai.service` |
-| **Windows** | Windows Service Configuration (`x86_64`, `arm64`) | `platform/windows/service_config.json` |
-| **macOS** | Launchd Daemon Plist (Apple Silicon & Intel) | `platform/macos/com.community.ai.daemon.plist` |
-| **Android** | Kotlin JNI Native Bridge via `libcommunity_ffi.so` | `platform/android/CommunityAINative.kt` |
-| **iOS** | Swift / C Bridging Header via `libcommunity_ffi.a` | `platform/ios/CommunityAIBridge.swift` |
-| **Web / PWA** | WebGPU in-browser compute via WebLLM Worker | `community-ai/packages/web/` |
-
----
-
-## 🧮 Dynamic Sharding & Placement Algorithm
-
-When a node $N_j$ connects to the network, candidate shard $S_k$ is selected using the **Placement Score**:
-
-$$\text{Score}(S_k, N_j) = \underbrace{\left( \frac{\text{GlobalDemand}(S_k)}{\text{Replicas}(S_k) + 1} \right)}_{\text{Replication Deficit}} \times \underbrace{\left( \frac{\text{AvailableMemory}(N_j)}{\text{Size}(S_k)} \right)}_{\text{Memory Fit}} \times \underbrace{\left( \frac{100.0}{\overline{\text{RTT}}(N_j, \text{Neighbors}) + 10.0} \right)}_{\text{Network Proximity}}$$
-
-The scheduler ensures:
-1. Under-replicated transformer layers receive priority allocation.
-2. Nodes download only what fits strictly inside their Governor-approved VRAM/RAM quota.
-3. Adjacent pipeline nodes are co-located within low-RTT geographic network clusters.
-
----
-
-## 🛡 Resource Governor & UEPS
-
-To guarantee the volunteer's computer never experiences sluggishness or battery drain, the **Resource Governor** continuously computes the **User Experience Preservation Score (UEPS)**:
-
-$$\text{UEPS} = 1.0 - \left( 0.5 \times \frac{\text{CPU Usage}}{100.0} + 0.5 \times \text{Memory Contention} \right)$$
-
-### Dynamic State Transitions:
-- **`Idle`** (User inactive > 2 minutes): Up to **85% capacity**.
-- **`Light`** (User active recently): Throttled to **50% capacity**.
-- **`Active`** (Interactive foreground apps running): Throttled to **20% capacity**.
-- **`Busy / Gaming / Battery`**: Throttled to **0% capacity** (Immediate release of VRAM and CPU threads).
-
----
-
-## 🛠 Getting Started
+## 🛠 Developer & Build Guide
 
 ### Prerequisites
 - **Rust 1.80+** (`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`)
 - **Node.js 20+** and `npm`
+- **Android SDK & NDK** (only if compiling Android native binaries)
 
-### 1. Running the Rust Core Workspace
+### 1. Build and Test Rust Core
 ```bash
 # Clone the repository
 git clone https://github.com/M-Ali-Nasir/community_ai.git
 cd community_ai
 
-# Run all unit, integration, and FFI tests across all 11 crates
+# Run all unit, integration, and P2P mesh tests across all 11 crates
 cargo test --workspace
 ```
 
-### 2. Running the Cluster Simulator
-Simulates cluster formation, layer placement, and token latency across 20 heterogeneous consumer nodes:
-```bash
-cargo run --bin community-simulator
-```
-
-### 3. Running the Native Worker Daemon
-```bash
-cargo run --bin community-daemon -- --name worker-node-01 --coordinator 127.0.0.1:8080 --cache-dir ./model_cache
-```
-
-### 4. Running the Web Coordinator & PWA
+### 2. Run the Web Dashboard & P2P Coordinator
 ```bash
 cd community-ai
 npm install
 
-# Start Coordinator (HTTPS WebSocket server)
-npm run dev:coordinator
-
-# Start Web Dashboard
-npm run dev:web
-```
-Open `http://localhost:5173` in your browser.
-
----
-
-## 📦 Platform Packaging & Testing
-
-### 🐧 Linux Automated Installer & Systemd Service
-To build and install the native worker daemon as a persistent 24/7 background system service on Linux:
-
-```bash
-# Run the automated installer with root privileges
-sudo ./platform/linux/install.sh
+# Start development server
+npm run dev
 ```
 
-**Management commands:**
+### 3. Rebuild the Android APK
 ```bash
-# Check running status
-sudo systemctl status community-ai
+# Compile web assets
+npm --prefix community-ai/packages/web run build
 
-# View real-time logs & resource governor telemetry
-sudo journalctl -u community-ai -f
+# Copy assets to Android project
+mkdir -p platform/android/app/src/main/assets/www
+cp -r community-ai/packages/web/dist/* platform/android/app/src/main/assets/www/
 
-# Stop / restart service
-sudo systemctl restart community-ai
-```
-
----
-
-### 🤖 Android APK Build & JNI Native Bridge
-To cross-compile the Shared Rust Core for Android and package the APK:
-
-```bash
-# 1. Build Android ARM64, ARMv7, and x86_64 .so shared libraries
-./platform/android/build_android.sh
-
-# 2. Build the debug APK via Gradle
+# Build APK using Gradle
 cd platform/android
 ./gradlew assembleDebug
-
-# 3. Install on connected Android device via ADB
-adb install app/build/outputs/apk/debug/app-debug.apk
+cp app/build/outputs/apk/debug/app-debug.apk ../../dist/CommunityAI.apk
 ```
-*See [`platform/android/README.md`](platform/android/README.md) for detailed prerequisites and Android Studio configuration.*
-
----
-
-## 📚 Documentation & ADRs
-
-Detailed architectural specifications and design decisions are located in `/docs`:
-- [`01-project-overview.md`](docs/01-project-overview.md) — Mission and core axioms
-- [`04-system-design.md`](docs/04-system-design.md) — Crate decomposition and data flows
-- [`09-model-sharding.md`](docs/09-model-sharding.md) — Mathematical shard placement formulation
-- [`11-resource-governor.md`](docs/11-resource-governor.md) — UEPS scoring and state machine
-- [`23-decision-log.md`](docs/23-decision-log.md) — Architectural Decision Records (ADR-001 to ADR-010)
-- [`CURRENT_ARCHITECTURE.md`](docs/CURRENT_ARCHITECTURE.md) — Prototype audit and execution traces
-- [`TARGET_ARCHITECTURE.md`](docs/TARGET_ARCHITECTURE.md) — Long-term production specification
-- [`MIGRATION_PLAN.md`](docs/MIGRATION_PLAN.md) — Phased transition roadmap
 
 ---
 
 ## 📜 Model Licensing & Policy
 
-This project strictly adheres to **Apache-2.0 and MIT** open-source licensing. 
+This project strictly adheres to **Apache-2.0 and MIT** open-source licensing:
 - **Flagship Default**: `Qwen/Qwen2.5-7B-Instruct` (Apache-2.0)
-- **Lightweight/Evaluation Models**: `SmolLM2-360M-Instruct` (Apache-2.0), `Qwen2.5-0.5B-Instruct` (Apache-2.0)
-- **Excluded Defaults**: Gated models requiring individual user license agreements (e.g. Llama Community License, Gemma Terms) are excluded from automatic default distribution to protect volunteer nodes.
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please ensure all code changes follow the **Shared Rust Core** pattern and pass all test suites (`cargo test --workspace`).
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+- **Lightweight / Mobile Models**: `SmolLM2-360M-Instruct` (Apache-2.0), `Qwen2.5-0.5B-Instruct` (Apache-2.0)
+- **Zero-Gated Architecture**: No models with restrictive commercial agreements or mandatory account sign-ins are required.
 
 ---
 
 ## 📄 License
 
-Distributed under the Apache-2.0 License. See `LICENSE` for more information.
+Distributed under the **Apache-2.0 License**. See [LICENSE](LICENSE) for full details.
