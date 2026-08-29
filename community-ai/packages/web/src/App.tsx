@@ -19,9 +19,11 @@ export function App() {
   );
 
   useEffect(() => {
-    void contributor.probe();
+    void contributor.probe().then(() => {
+      void contributor.start(coordinator.state.modelId || "qwen2.5-7b");
+    });
     return () => contributor.stop();
-  }, [contributor]);
+  }, [contributor, coordinator.state.modelId]);
 
   const { state } = coordinator;
   const onlineNodes = state.nodes.filter((n) => n.online).length;
