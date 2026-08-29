@@ -57,10 +57,16 @@ function stableNodeId(): string {
   return created;
 }
 
-import { resolveWsUrl } from "./useCoordinator.js";
-
 function wsUrl(path: string): string {
-  return resolveWsUrl(path);
+  if (typeof window === "undefined") return `ws://127.0.0.1:8787${path}`;
+  const origin = window.location.port === "5173" ? "http://127.0.0.1:8787" : window.location.origin;
+  try {
+    const url = new URL(path, origin);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    return url.toString();
+  } catch {
+    return `ws://127.0.0.1:8787${path}`;
+  }
 }
 
 export class Contributor {

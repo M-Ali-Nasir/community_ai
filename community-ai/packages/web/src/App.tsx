@@ -5,34 +5,17 @@ import { ChatPanel } from "./components/ChatPanel.js";
 import { DeviceResourcesPanel } from "./components/DeviceResourcesPanel.js";
 import { ContributePanel } from "./components/ContributePanel.js";
 import { NetworkPanel } from "./components/NetworkPanel.js";
-import { NetworkConfigModal } from "./components/NetworkConfigModal.js";
 
 type Tab = "chat" | "resources" | "contribute" | "network";
 
-const TOKEN_KEY = "community-ai:token";
-
-function readToken(): string {
-  const fromUrl = new URLSearchParams(window.location.search).get("token");
-  if (fromUrl) {
-    localStorage.setItem(TOKEN_KEY, fromUrl);
-    const url = new URL(window.location.href);
-    url.searchParams.delete("token");
-    window.history.replaceState({}, "", url.toString());
-    return fromUrl;
-  }
-  return localStorage.getItem(TOKEN_KEY) ?? "";
-}
-
 export function App() {
   const [tab, setTab] = useState<Tab>("chat");
-  const [token, setToken] = useState(readToken);
-  const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const coordinator = useCoordinator(token);
+  const coordinator = useCoordinator("");
   const [contributorStatus, setContributorStatus] = useState<ContributorStatus | null>(null);
 
   const contributor = useMemo(
-    () => new Contributor(token, (status) => setContributorStatus({ ...status })),
-    [token]
+    () => new Contributor("", (status) => setContributorStatus({ ...status })),
+    []
   );
 
   useEffect(() => {
@@ -40,14 +23,8 @@ export function App() {
     return () => contributor.stop();
   }, [contributor]);
 
-  const { state, updateCoordinatorUrl } = coordinator;
+  const { state } = coordinator;
   const onlineNodes = state.nodes.filter((n) => n.online).length;
-
-  const handleUpdateToken = (newToken: string) => {
-    const trimmed = newToken.trim();
-    localStorage.setItem(TOKEN_KEY, trimmed);
-    setToken(trimmed);
-  };
 
   return (
     <div className="app-container">
@@ -57,38 +34,18 @@ export function App() {
           <div className="logo-icon">🌐</div>
           <div className="brand-text">
             <strong>Community AI</strong>
-            <span className="brand-tag">Decentralized Mesh</span>
+            <span className="brand-tag">True P2P Decentralized Mesh</span>
           </div>
         </div>
 
         <div className="topbar-right">
-          <button
-            className="cluster-status-pill-btn"
-            onClick={() => setIsConfigOpen(true)}
-            title="Configure Network & Coordinator URL"
-          >
-            <span className={`dot ${state.connected ? "online" : "offline"}`} />
-            <span>
-              {state.connected
-                ? `${onlineNodes} Worker${onlineNodes === 1 ? "" : "s"} Active`
-                : state.connection.toUpperCase()}
-            </span>
-            <span style={{ fontSize: 11, opacity: 0.7 }}>⚙️</span>
-          </button>
+          <div className="cluster-status-pill">
+            <span className="dot online" />
+            <span>{onlineNodes} P2P Node{onlineNodes === 1 ? "" : "s"} Online</span>
+            <span className="peer-badge">{state.peerId}</span>
+          </div>
         </div>
       </header>
-
-      {/* Network & Security Settings Modal */}
-      <NetworkConfigModal
-        isOpen={isConfigOpen}
-        onClose={() => setIsConfigOpen(false)}
-        coordinatorUrl={state.coordinatorUrl}
-        connected={state.connected}
-        connectionState={state.connection}
-        token={token}
-        onUpdateUrl={updateCoordinatorUrl}
-        onUpdateToken={handleUpdateToken}
-      />
 
       {/* Modern Tab Navigation */}
       <nav className="tab-navigation">
