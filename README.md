@@ -15,6 +15,18 @@
 
 </div>
 
+## 📦 1-Click Ready-to-Install Image Files & Packages
+
+No developer commands needed! Pre-packaged distribution files are located in the `dist/` directory:
+
+| Platform | Package / File | How to Install & Run |
+| :--- | :--- | :--- |
+| **Android Phone / Tablet** | `dist/CommunityAI.apk` | **Direct Install**: Tap `CommunityAI.apk` on phone, or run `dist/install-to-android.sh` to auto-push via USB. |
+| **Ubuntu / Linux Desktop** | `dist/install-desktop.sh` | **1-Click Setup**: Registers the app into your Ubuntu dock & Desktop as `Community AI.desktop`. Double-click to launch! |
+| **Direct Desktop Launcher** | `dist/launch-app.sh` | **Standalone App**: Opens the modern AI Chat, Device Resources, and Worker Controls in a native standalone window. |
+
+---
+
 ## 📌 Table of Contents
 
 - [Overview](#-overview)
