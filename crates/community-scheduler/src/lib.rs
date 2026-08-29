@@ -176,7 +176,7 @@ mod tests {
         ];
 
         // 3000MB model with 15% headroom requires 3450MB (fits in node1 + node2 = 4000MB)
-        let plan = Scheduler::plan_pipeline("qwen2.5-7b", 3000, 28, &nodes).unwrap();
+        let plan = Scheduler::plan_pipeline("qwen3-14b", 3000, 48, &nodes).unwrap();
         assert_eq!(plan.members.len(), 2);
         assert_eq!(plan.head_node_id.as_str(), nodes[0].node_id.as_str());
     }

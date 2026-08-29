@@ -14,7 +14,7 @@
 
 ### ADR-004: Single Flagship Model Default
 - **Context:** Eliminating configuration friction for community volunteer testers.
-- **Decision:** Default network model set to `Qwen2.5-7B` (Apache-2.0).
+- **Decision:** Default network model set to `Qwen3-14B` (Apache-2.0).
 
 ### ADR-005: Resource Priority & UEPS
 - **Context:** Volunteer devices must not experience slowdowns or battery drain while used by their owners.

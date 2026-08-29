@@ -137,11 +137,11 @@ pub extern "C" fn community_ai_model_manifest(
     num_shards: u32,
 ) -> *mut c_char {
     let c_model_id = if model_id.is_null() {
-        "qwen2.5-7b"
+        "qwen3-14b"
     } else {
         unsafe { CStr::from_ptr(model_id) }
             .to_str()
-            .unwrap_or("qwen2.5-7b")
+            .unwrap_or("qwen3-14b")
     };
 
     let manifest = ModelManifest::create_default_flagship(c_model_id, total_layers, num_shards);

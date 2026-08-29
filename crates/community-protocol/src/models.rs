@@ -12,7 +12,7 @@ pub struct ModelEntry {
     pub gguf_url: Option<String>,
 }
 
-pub const FLAGSHIP_MODEL_ID: &str = "qwen2.5-7b";
+pub const FLAGSHIP_MODEL_ID: &str = "qwen3-14b";
 
 pub fn default_model_catalog() -> Vec<ModelEntry> {
     vec![
@@ -37,14 +37,14 @@ pub fn default_model_catalog() -> Vec<ModelEntry> {
             gguf_url: Some("https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf".into()),
         },
         ModelEntry {
-            id: "qwen2.5-7b".into(),
-            display_name: "Qwen2.5 7B Instruct (Default Flagship)".into(),
-            params_b: 7.61,
+            id: "qwen3-14b".into(),
+            display_name: "Qwen3 14B Instruct (Default Flagship)".into(),
+            params_b: 14.7,
             license: "Apache-2.0".into(),
-            q4_size_mb: 4700,
-            total_layers: 28,
-            default_shards: 4,
-            gguf_url: Some("https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF/resolve/main/Qwen2.5-7B-Instruct-Q4_K_M.gguf".into()),
+            q4_size_mb: 8900,
+            total_layers: 48,
+            default_shards: 6,
+            gguf_url: Some("https://huggingface.co/bartowski/Qwen3-14B-Instruct-GGUF/resolve/main/Qwen3-14B-Instruct-Q4_K_M.gguf".into()),
         },
     ]
 }

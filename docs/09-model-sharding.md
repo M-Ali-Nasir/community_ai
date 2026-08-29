@@ -1,7 +1,7 @@
 # 09. Model Sharding & Placement Formulation
 
 ## Sharding Strategy
-Flagship models (such as `Qwen2.5-7B` with 28 transformer blocks) are divided into discrete blocks:
+Flagship models (such as `Qwen3-14B` with 48 transformer blocks) are divided into discrete blocks:
 - **Shard 000**: Embedding table & RMSNorm (Layers 0..6)
 - **Shard 001**: Transformer blocks (Layers 7..13)
 - **Shard 002**: Transformer blocks (Layers 14..20)

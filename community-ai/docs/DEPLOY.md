@@ -93,11 +93,11 @@ the same three questions.
 
 | Machine | Suggested flags |
 | --- | --- |
-| Desktop with a discrete GPU, usually idle | `--model qwen2.5-7b --max-capacity 0.9` |
+| Desktop with a discrete GPU, usually idle | `--model qwen3-14b --max-capacity 0.9` |
 | Desktop that also gets gamed on | `--model qwen2.5-1.5b --pause-cpu 60` |
 | Work laptop | `--model qwen2.5-0.5b --max-capacity 0.4 --throttle-cpu 35` |
 | Laptop the owner wants to run on battery | `--run-on-battery --battery-capacity 0.3` |
-| Mac with Apple Silicon | `--model qwen2.5-7b` (Metal is detected automatically) |
+| Mac with Apple Silicon | `--model qwen3-14b` (Metal is detected automatically) |
 
 `--help` lists every governor knob. All of them are enforced on the friend's own
 machine; the coordinator cannot raise any of them.

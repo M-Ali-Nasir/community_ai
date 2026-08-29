@@ -34,7 +34,7 @@ The repository currently contains two distinct generations of prototypes develop
   - `WorkloadAnalysis` & `TaskSpec`: Distinguishes between `single-node`, `task-parallel`, and `model-parallel` execution.
   - `PipelinePlan`: Defines a multi-stage execution pipeline specifying member nodes, layer shares, pooled memory, and latency ceilings.
 - **Model Catalog (`models.ts`):**
-  - Explicit Apache-2.0 and MIT licensing whitelist (`smollm2-360m`, `qwen2.5-0.5b`, `qwen2.5-1.5b`, `phi-3.5-mini`, `mistral-7b`, `qwen2.5-7b`).
+  - Explicit Apache-2.0 and MIT licensing whitelist (`smollm2-360m`, `qwen2.5-0.5b`, `qwen2.5-1.5b`, `phi-3.5-mini`, `mistral-7b`, `qwen3-14b`).
   - Gated models (Llama 3.1, Gemma 2) explicitly excluded to protect peer redistribution.
 
 ### 2.2 Coordinator (`packages/coordinator`)

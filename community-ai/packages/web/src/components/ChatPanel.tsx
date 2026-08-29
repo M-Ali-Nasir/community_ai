@@ -82,7 +82,7 @@ export function ChatPanel({ coordinator }: { coordinator: Coordinator }) {
     {
       role: "assistant",
       content:
-        "Hello! I am the Community AI flagship model (Qwen2.5 7B Instruct) running across a distributed pool of volunteer devices. Ask me anything!",
+        "Hello! I am the Community AI flagship model (Qwen3 14B Instruct) running across a distributed pool of volunteer devices. Ask me anything!",
     },
   ]);
   const [maxTokens, setMaxTokens] = useState(256);
@@ -170,7 +170,7 @@ export function ChatPanel({ coordinator }: { coordinator: Coordinator }) {
       <div className="chat-topbar">
         <div className="model-badge">
           <span className="dot online" />
-          <strong>Qwen2.5 7B Instruct</strong>
+          <strong>Qwen3 14B Instruct</strong>
           <span className="badge-tag">Flagship Default</span>
         </div>
         <div className="nodes-info">

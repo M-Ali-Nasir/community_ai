@@ -90,15 +90,14 @@ export const MODEL_CATALOG: ModelEntry[] = [
     notes: "Ungated Apache-2.0 7B.",
   },
   {
-    id: "qwen2.5-7b",
-    displayName: "Qwen2.5 7B Instruct",
-    paramsB: 7.61,
+    id: "qwen3-14b",
+    displayName: "Qwen3 14B Instruct",
+    paramsB: 14.7,
     license: "Apache-2.0",
-    q4SizeMB: 4700,
-    webllmMatch: "Qwen2.5-7B-Instruct",
-    // Qwen's own repo ships this split across two shards; bartowski's is one file.
-    ggufUri: "hf:bartowski/Qwen2.5-7B-Instruct-GGUF/Qwen2.5-7B-Instruct-Q4_K_M.gguf",
-    notes: "Target model once friends with 8 GB+ GPUs join the testnet.",
+    q4SizeMB: 8900,
+    webllmMatch: "Qwen3-14B-Instruct",
+    ggufUri: "hf:bartowski/Qwen3-14B-Instruct-GGUF/Qwen3-14B-Instruct-Q4_K_M.gguf",
+    notes: "Default v1.0 flagship model partitioned across decentralized mesh peer devices.",
   },
 ];
 
