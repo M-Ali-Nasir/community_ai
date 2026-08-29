@@ -18,7 +18,7 @@ pub fn default_model_catalog() -> Vec<ModelEntry> {
     vec![
         ModelEntry {
             id: "qwen3-14b".into(),
-            display_name: "Qwen3 14B Instruct (Default Flagship)".into(),
+            display_name: "Community AI".into(),
             params_b: 14.7,
             license: "Apache-2.0".into(),
             q4_size_mb: 8900,
