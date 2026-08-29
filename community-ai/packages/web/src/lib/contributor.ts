@@ -57,10 +57,10 @@ function stableNodeId(): string {
   return created;
 }
 
+import { resolveWsUrl } from "./useCoordinator.js";
+
 function wsUrl(path: string): string {
-  const url = new URL(path, window.location.origin);
-  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  return url.toString();
+  return resolveWsUrl(path);
 }
 
 export class Contributor {

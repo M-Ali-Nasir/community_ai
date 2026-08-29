@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 const COORDINATOR = process.env.COORDINATOR_URL ?? "http://localhost:8787";
 
 export default defineConfig({
+  base: "./",
   plugins: [react()],
   server: {
     port: 5173,

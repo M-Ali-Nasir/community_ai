@@ -51,12 +51,10 @@ export const config = {
   maxPipelineMembers: envInt("MAX_PIPELINE_MEMBERS", 4),
 
   /**
-   * Serve HTTPS with a local self-signed certificate. Required for browser
-   * WebGPU contribution from other machines on the LAN: Chrome only exposes
-   * navigator.gpu on https:// or http://localhost. Set HTTPS=false to stay on
-   * plain HTTP (native workers still work; the Contribute tab will not).
+   * Serve HTTPS with a local self-signed certificate. If false, serves standard HTTP.
+   * WAN tunnels (like Cloudflare) automatically terminate trusted global HTTPS.
    */
-  https: process.env.HTTPS !== "false",
+  https: process.env.HTTPS === "true",
 } as const;
 
 export type Config = typeof config;
