@@ -30,6 +30,9 @@
   - [2. Running the Cluster Simulator](#2-running-the-cluster-simulator)
   - [3. Running the Native Worker Daemon](#3-running-the-native-worker-daemon)
   - [4. Running the Web Coordinator & PWA](#4-running-the-web-coordinator--pwa)
+- [Platform Packaging & Testing](#-platform-packaging--testing)
+  - [Linux Automated Installer & Service](#-linux-automated-installer--systemd-service)
+  - [Android APK Build & JNI Native Bridge](#-android-apk-build--jni-native-bridge)
 - [Documentation & ADRs](#-documentation--adrs)
 - [Model Licensing & Policy](#-model-licensing--policy)
 - [Contributing](#-contributing)
@@ -185,6 +188,48 @@ npm run dev:coordinator
 npm run dev:web
 ```
 Open `http://localhost:5173` in your browser.
+
+---
+
+## 📦 Platform Packaging & Testing
+
+### 🐧 Linux Automated Installer & Systemd Service
+To build and install the native worker daemon as a persistent 24/7 background system service on Linux:
+
+```bash
+# Run the automated installer with root privileges
+sudo ./platform/linux/install.sh
+```
+
+**Management commands:**
+```bash
+# Check running status
+sudo systemctl status community-ai
+
+# View real-time logs & resource governor telemetry
+sudo journalctl -u community-ai -f
+
+# Stop / restart service
+sudo systemctl restart community-ai
+```
+
+---
+
+### 🤖 Android APK Build & JNI Native Bridge
+To cross-compile the Shared Rust Core for Android and package the APK:
+
+```bash
+# 1. Build Android ARM64, ARMv7, and x86_64 .so shared libraries
+./platform/android/build_android.sh
+
+# 2. Build the debug APK via Gradle
+cd platform/android
+./gradlew assembleDebug
+
+# 3. Install on connected Android device via ADB
+adb install app/build/outputs/apk/debug/app-debug.apk
+```
+*See [`platform/android/README.md`](platform/android/README.md) for detailed prerequisites and Android Studio configuration.*
 
 ---
 
