@@ -89,7 +89,7 @@ export function ChatPanel({
     {
       role: "assistant",
       content:
-        "Hello! I am the Community AI flagship model (Qwen3 14B Instruct) running across a distributed pool of volunteer devices. Ask me anything!",
+        "Hello! I am Qwen3 14B Instruct. Ask me anything, request code, or explore ideas!",
     },
   ]);
   const [maxTokens, setMaxTokens] = useState(256);
