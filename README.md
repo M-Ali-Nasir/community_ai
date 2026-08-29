@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="dist/icon.png" alt="Community AI Logo" width="140" height="140" style="border-radius: 28px; box-shadow: 0 8px 30px rgba(0, 240, 210, 0.3);" />
+<img src="dist/icon.png" alt="Community AI Logo" width="140" height="140" style="border-radius: 28px; box-shadow: 0 8px 30px rgba(255, 122, 0, 0.4);" />
 
 # 🌐 Community AI (v1.0)
 
