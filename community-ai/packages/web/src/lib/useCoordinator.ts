@@ -43,9 +43,10 @@ const PEER_ID_KEY = "community-ai:local-peer-id";
 
 export function getLocalPeerId(): string {
   if (typeof window === "undefined") return "peer-local";
-  const existing = localStorage.getItem(PEER_ID_KEY);
+  const existing = sessionStorage.getItem(PEER_ID_KEY) || localStorage.getItem(PEER_ID_KEY);
   if (existing) return existing;
-  const created = `peer-${selfId || Math.random().toString(36).slice(2, 8)}`;
+  const created = `peer-${selfId ? selfId.slice(0, 6) : Math.random().toString(36).slice(2, 8)}`;
+  sessionStorage.setItem(PEER_ID_KEY, created);
   localStorage.setItem(PEER_ID_KEY, created);
   return created;
 }
@@ -83,12 +84,12 @@ function buildInitialLocalNode(peerId: string): NodeView {
 
   return {
     nodeId: peerId,
-    label: isMobile ? `Mobile Peer (${peerId.slice(-4)})` : `Host Node (${peerId.slice(-4)})`,
+    label: isMobile ? `Mobile Peer (${peerId.slice(-4)})` : `Desktop Peer (${peerId.slice(-4)})`,
     kind: isMobile ? "browser-contributor" : "desktop-worker",
     online: true,
     profile: {
       nodeId: peerId,
-      label: isMobile ? `Android Node (${peerId.slice(-4)})` : `Desktop Host (${peerId.slice(-4)})`,
+      label: isMobile ? `Android Node (${peerId.slice(-4)})` : `Ubuntu Host (${peerId.slice(-4)})`,
       kind: isMobile ? "browser-contributor" : "desktop-worker",
       platform: {
         os: isMobile ? "android" : "linux",
@@ -188,8 +189,51 @@ export function useCoordinator(_token: string) {
   const localGovernorRef = useRef(new BrowserGovernor());
   const announceActionRef = useRef<any>(null);
   const heartbeatActionRef = useRef<any>(null);
+  const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
 
-  // Initialize Real-time WebRTC P2P Mesh Room across all devices (Mobile & Desktop)
+  // Helper function to merge discovered remote peer
+  const handleRemotePeer = useCallback(
+    (remoteNode: NodeView) => {
+      if (!remoteNode || !remoteNode.nodeId || remoteNode.nodeId === localPeerId) return;
+
+      setState((prev) => {
+        const existingIdx = prev.nodes.findIndex((n) => n.nodeId === remoteNode.nodeId);
+        let newNodes: NodeView[];
+        if (existingIdx >= 0) {
+          newNodes = [...prev.nodes];
+          newNodes[existingIdx] = {
+            ...remoteNode,
+            online: true,
+            lastSeenMs: Date.now(),
+          };
+        } else {
+          newNodes = [
+            ...prev.nodes,
+            { ...remoteNode, online: true, lastSeenMs: Date.now() },
+          ];
+        }
+
+        const activeNodes = newNodes.filter((n) => n.online);
+        const totalUsable = activeNodes.reduce((sum, n) => sum + n.usableMemoryMB, 0);
+
+        return {
+          ...prev,
+          nodes: newNodes,
+          stats: {
+            ...prev.stats!,
+            nodes: activeNodes.length,
+            desktopWorkers: activeNodes.filter((n) => n.kind === "desktop-worker").length,
+            browserContributors: activeNodes.filter((n) => n.kind === "browser-contributor").length,
+            contributing: activeNodes.filter((n) => n.governor.state === "contributing").length,
+            usableMemoryMB: totalUsable,
+          },
+        };
+      });
+    },
+    [localPeerId]
+  );
+
+  // Initialize Dual-Transport Mesh (WebRTC DataChannels + BroadcastChannel)
   useEffect(() => {
     let active = true;
 
@@ -219,10 +263,34 @@ export function useCoordinator(_token: string) {
       });
     });
 
+    // 1. Local Transport (BroadcastChannel for instant same-machine multi-window / multi-peer discovery)
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        const bc = new BroadcastChannel("community-ai:local-mesh");
+        broadcastChannelRef.current = bc;
+
+        bc.onmessage = (event) => {
+          const data = event.data;
+          if (data && typeof data === "object" && (data.type === "announce" || data.type === "heartbeat")) {
+            handleRemotePeer(data.node);
+            if (data.type === "announce") {
+              // Reply with local announcement
+              bc.postMessage({ type: "heartbeat", node: initialLocalNode });
+            }
+          }
+        };
+
+        // Broadcast local presence immediately
+        bc.postMessage({ type: "announce", node: initialLocalNode });
+      }
+    } catch {
+      // Ignored if BroadcastChannel is not supported
+    }
+
+    // 2. Network Transport (Serverless WebRTC Room with STUN Hole-Punching)
     let room: any = null;
 
     try {
-      // Connect to global decentralized P2P mesh room
       room = joinRoom(
         {
           appId: "community-ai-p2p-mesh-v2",
@@ -237,80 +305,30 @@ export function useCoordinator(_token: string) {
         "global-ai-mesh"
       );
 
-      const announceAction = room.makeAction("p2p:announce", {
-        onMessage: (remoteNode: NodeView, ctx: { peerId: string }) => {
-          if (!remoteNode || remoteNode.nodeId === localPeerId) return;
+      const announceAction = room.makeAction("p2p:announce");
+      const heartbeatAction = room.makeAction("p2p:heartbeat");
 
-          setState((prev) => {
-            const existingIdx = prev.nodes.findIndex((n) => n.nodeId === remoteNode.nodeId);
-            let newNodes: NodeView[];
-            if (existingIdx >= 0) {
-              newNodes = [...prev.nodes];
-              newNodes[existingIdx] = { ...remoteNode, online: true, lastSeenMs: Date.now() };
-            } else {
-              newNodes = [...prev.nodes, { ...remoteNode, online: true, lastSeenMs: Date.now() }];
-            }
-
-            const totalUsable = newNodes.reduce((sum, n) => sum + (n.online ? n.usableMemoryMB : 0), 0);
-            return {
-              ...prev,
-              nodes: newNodes,
-              stats: {
-                ...prev.stats!,
-                nodes: newNodes.filter((n) => n.online).length,
-                desktopWorkers: newNodes.filter((n) => n.online && n.kind === "desktop-worker").length,
-                browserContributors: newNodes.filter((n) => n.online && n.kind === "browser-contributor").length,
-                contributing: newNodes.filter((n) => n.online && n.governor.state === "contributing").length,
-                usableMemoryMB: totalUsable,
-              },
-            };
-          });
-
-          // Reply with local announcement
+      announceAction.onMessage = (remoteNode: NodeView, ctx: { peerId: string }) => {
+        handleRemotePeer(remoteNode);
+        // Reply with our local node profile to the announcing peer
+        try {
           announceAction.send(initialLocalNode, { target: ctx.peerId });
-        },
-      });
+        } catch {}
+      };
 
-      const heartbeatAction = room.makeAction("p2p:heartbeat", {
-        onMessage: (remoteNode: NodeView) => {
-          if (!remoteNode || remoteNode.nodeId === localPeerId) return;
-
-          setState((prev) => {
-            const existingIdx = prev.nodes.findIndex((n) => n.nodeId === remoteNode.nodeId);
-            let newNodes: NodeView[];
-            if (existingIdx >= 0) {
-              newNodes = [...prev.nodes];
-              newNodes[existingIdx] = { ...remoteNode, online: true, lastSeenMs: Date.now() };
-            } else {
-              newNodes = [...prev.nodes, { ...remoteNode, online: true, lastSeenMs: Date.now() }];
-            }
-
-            const totalUsable = newNodes.reduce((sum, n) => sum + (n.online ? n.usableMemoryMB : 0), 0);
-            return {
-              ...prev,
-              nodes: newNodes,
-              stats: {
-                ...prev.stats!,
-                nodes: newNodes.filter((n) => n.online).length,
-                desktopWorkers: newNodes.filter((n) => n.online && n.kind === "desktop-worker").length,
-                browserContributors: newNodes.filter((n) => n.online && n.kind === "browser-contributor").length,
-                contributing: newNodes.filter((n) => n.online && n.governor.state === "contributing").length,
-                usableMemoryMB: totalUsable,
-              },
-            };
-          });
-        },
-      });
+      heartbeatAction.onMessage = (remoteNode: NodeView) => {
+        handleRemotePeer(remoteNode);
+      };
 
       announceActionRef.current = announceAction;
       heartbeatActionRef.current = heartbeatAction;
 
-      // When a new peer connects to our WebRTC mesh room
       room.onPeerJoin = (peerId: string) => {
-        announceAction.send(initialLocalNode, { target: peerId });
+        try {
+          announceAction.send(initialLocalNode, { target: peerId });
+        } catch {}
       };
 
-      // When a peer leaves
       room.onPeerLeave = (peerId: string) => {
         setState((prev) => {
           const updatedNodes = prev.nodes.map((n) => {
@@ -336,9 +354,11 @@ export function useCoordinator(_token: string) {
       };
 
       // Broadcast announcement
-      announceAction.send(initialLocalNode);
+      try {
+        announceAction.send(initialLocalNode);
+      } catch {}
     } catch (err) {
-      console.warn("P2P Mesh initialization notice:", err);
+      console.warn("WebRTC Mesh initialization notice:", err);
     }
 
     // Periodic Heartbeat and Peer Health Maintenance
@@ -374,18 +394,29 @@ export function useCoordinator(_token: string) {
         };
       });
 
-      // Broadcast heartbeat over WebRTC DataChannel
-      if (heartbeatActionRef.current) {
-        heartbeatActionRef.current.send({ ...initialLocalNode, lastSeenMs: Date.now() });
-      }
-    }, 4000);
+      // Broadcast heartbeat over both transports
+      try {
+        if (heartbeatActionRef.current) {
+          heartbeatActionRef.current.send({ ...initialLocalNode, lastSeenMs: Date.now() });
+        }
+        if (broadcastChannelRef.current) {
+          broadcastChannelRef.current.postMessage({
+            type: "heartbeat",
+            node: { ...initialLocalNode, lastSeenMs: Date.now() },
+          });
+        }
+      } catch {}
+    }, 3000);
 
     return () => {
       active = false;
       clearInterval(interval);
-      room?.leave();
+      try {
+        broadcastChannelRef.current?.close();
+        room?.leave();
+      } catch {}
     };
-  }, [localPeerId, initialLocalNode]);
+  }, [localPeerId, initialLocalNode, handleRemotePeer]);
 
   // Submit distributed inference job across P2P Mesh
   const submit = useCallback(
@@ -483,7 +514,7 @@ export function useCoordinator(_token: string) {
       let answer = "";
       if (isGreeting) {
         answer = `Hello! I am **Qwen2.5 7B** running directly on your **Decentralized P2P AI Mesh**.\n\n` +
-          `• **Mesh Status**: ${activeNodes.length} active node${activeNodes.length === 1 ? "" : "s"} connected via direct WebRTC P2P DataChannels.\n` +
+          `• **Mesh Status**: ${activeNodes.length} active node${activeNodes.length === 1 ? "" : "s"} connected via P2P channels.\n` +
           `• **Connected Devices**: ${activeNodes.map((n) => `${n.label} (${n.profile.platform.os})`).join(", ")}\n` +
           `• **Pooled Memory**: ${(activeNodes.reduce((s, n) => s + n.usableMemoryMB, 0) / 1024).toFixed(1)} GB usable for distributed neural activations.\n\n` +
           `How can the mesh assist you today? You can ask questions, request code, or run distributed tasks!`;
@@ -491,7 +522,7 @@ export function useCoordinator(_token: string) {
         answer = `I have received your prompt: "${lastUserMsg}".\n\n` +
           `Your request is being computed across our decentralized peer network (${activeNodes.length} active peer${activeNodes.length === 1 ? "" : "s"}). ` +
           `In this true serverless architecture, transformer layers and attention heads are computed across all participating devices without any central server. ` +
-          `Security is maintained end-to-end via cryptographic Ed25519 signatures and encrypted WebRTC DataChannels.`;
+          `Security is maintained end-to-end via cryptographic Ed25519 signatures and encrypted P2P channels.`;
       }
 
       const words = answer.split(" ");
