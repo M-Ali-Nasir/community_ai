@@ -13,6 +13,7 @@ community-protocol.workspace = true
 community-governor.workspace = true
 community-model-manager.workspace = true
 community-scheduler.workspace = true
+community-network.workspace = true
 community-security.workspace = true
 serde.workspace = true
 serde_json.workspace = true
