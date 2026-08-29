@@ -80,7 +80,9 @@ export function App() {
 
       {/* Main Content View */}
       <main className="main-content">
-        {tab === "chat" && <ChatPanel coordinator={coordinator} />}
+        {tab === "chat" && (
+          <ChatPanel coordinator={coordinator} contributorStatus={contributorStatus} />
+        )}
         {tab === "resources" && (
           <DeviceResourcesPanel coordinator={coordinator} contributorStatus={contributorStatus} />
         )}
