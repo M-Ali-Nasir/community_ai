@@ -11,6 +11,12 @@ public final class CommunityAIBridge {
         return String(cString: cStr)
     }
 
+    public func initP2PSwarm(nodeName: String) -> String {
+        guard let cStr = community_ai_init_p2p_swarm(nodeName) else { return "{}" }
+        defer { community_ai_free_string(cStr) }
+        return String(cString: cStr)
+    }
+
     public func tickGovernor(isBusy: Bool, onBattery: Bool) -> String {
         guard let cStr = community_ai_tick_governor(isBusy, onBattery) else { return "{}" }
         defer { community_ai_free_string(cStr) }
