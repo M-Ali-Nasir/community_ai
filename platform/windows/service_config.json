@@ -1,0 +1,11 @@
+{
+  "serviceName": "CommunityAIDaemon",
+  "displayName": "Community AI Distributed Worker Service",
+  "description": "Background compute worker for Community AI distributed inference network",
+  "executablePath": "community-daemon.exe",
+  "arguments": ["--coordinator", "127.0.0.1:8080", "--cache-dir", "C:\\ProgramData\\CommunityAI\\Cache"],
+  "startType": "Automatic",
+  "delayedAutoStart": true,
+  "restartOnFailure": true,
+  "restartDelaySec": 5
+}

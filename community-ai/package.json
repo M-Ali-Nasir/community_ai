@@ -1,0 +1,33 @@
+{
+  "name": "community-ai",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "description": "Community-powered AI: real on-device inference across heterogeneous consumer devices",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "workspaces": [
+    "packages/protocol",
+    "packages/coordinator",
+    "packages/web",
+    "packages/worker-node"
+  ],
+  "scripts": {
+    "build": "tsc -b packages/protocol packages/coordinator packages/worker-node && npm run build -w @community-ai/web",
+    "typecheck": "tsc -b packages/protocol packages/coordinator packages/worker-node && npm run typecheck -w @community-ai/web",
+    "dev": "concurrently -n coordinator,web -c cyan,magenta \"npm:dev:coordinator\" \"npm:dev:web\"",
+    "dev:coordinator": "npm run dev -w @community-ai/coordinator",
+    "dev:web": "npm run dev -w @community-ai/web",
+    "start": "npm run start -w @community-ai/coordinator",
+    "worker": "npm run start -w @community-ai/worker",
+    "worker:dev": "npm run dev -w @community-ai/worker",
+    "smoke": "node scripts/smoke.mjs",
+    "clean": "rm -rf packages/*/dist packages/*/tsconfig.tsbuildinfo packages/web/dist"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

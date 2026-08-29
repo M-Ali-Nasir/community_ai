@@ -1,0 +1,18 @@
+[package]
+name = "community-network"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+community-core.workspace = true
+community-protocol.workspace = true
+community-security.workspace = true
+community-scheduler.workspace = true
+tokio = { workspace = true, features = ["full"] }
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+futures.workspace = true
+bytes.workspace = true

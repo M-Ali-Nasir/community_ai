@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.community.ai.daemon</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/community-daemon</string>
+        <string>--coordinator</string>
+        <string>127.0.0.1:8080</string>
+        <string>--cache-dir</string>
+        <string>/Library/Application Support/CommunityAI/Cache</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ProcessType</key>
+    <string>Background</string>
+    <key>LowPriorityIO</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/var/log/community-ai.log</string>
+    <key>StandardErrorPath</key>
+    <string>/var/log/community-ai.err</string>
+</dict>
+</plist>

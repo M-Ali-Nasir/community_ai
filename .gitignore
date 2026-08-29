@@ -1,0 +1,43 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+
+# Node.js dependencies and build outputs
+node_modules/
+dist/
+build/
+.npm/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Model weights, cache, and shard binaries (downloaded dynamically)
+*.gguf
+*.bin
+*.safetensors
+*.onnx
+*.shard
+*.part
+models/
+**/models/
+model_cache/
+**/model_cache/
+
+# TLS certificates & secrets
+*.pem
+*.key
+*.cert
+*.crt
+.env
+.env.*
+!.env.example
+
+# OS and IDE temporary files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+.cursor/
