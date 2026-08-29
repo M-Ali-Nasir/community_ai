@@ -1,18 +1,54 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" fill="#12150f"/>
-  <g transform="translate(256 256) scale(0.62) translate(-256 -256)">
-    <g fill="none" stroke="#c8dc5f" stroke-width="14" stroke-linecap="round">
-      <path d="M256 118 L146 190 M256 118 L366 190 M146 190 L146 322 M366 190 L366 322 M146 322 L256 394 M366 322 L256 394"/>
-      <path d="M256 118 L256 394 M146 190 L366 322 M366 190 L146 322" stroke="#5d6b3a" stroke-width="8"/>
-    </g>
-    <g fill="#c8dc5f">
-      <circle cx="256" cy="118" r="30"/>
-      <circle cx="146" cy="190" r="26"/>
-      <circle cx="366" cy="190" r="26"/>
-      <circle cx="146" cy="322" r="26"/>
-      <circle cx="366" cy="322" r="26"/>
-      <circle cx="256" cy="394" r="30"/>
-    </g>
-    <circle cx="256" cy="256" r="44" fill="#12150f" stroke="#c8dc5f" stroke-width="14"/>
+  <defs>
+    <radialGradient id="coreAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.8"/>
+      <stop offset="60%" stop-color="#7000ff" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#0d1117" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="glowLine" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f0d0"/>
+      <stop offset="100%" stop-color="#5a8cff"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Full Bleed Obsidian Background for Maskable Icon -->
+  <rect width="512" height="512" fill="#0d1117"/>
+
+  <!-- Core Radial Glow -->
+  <circle cx="256" cy="256" r="160" fill="url(#coreAura)"/>
+
+  <!-- Mesh Interconnection Lines -->
+  <g stroke="url(#glowLine)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9">
+    <polygon points="256,102 389,179 389,333 256,410 123,333 123,179" fill="none"/>
+    <line x1="256" y1="102" x2="256" y2="256"/>
+    <line x1="389" y1="179" x2="256" y2="256"/>
+    <line x1="389" y1="333" x2="256" y2="256"/>
+    <line x1="256" y1="410" x2="256" y2="256"/>
+    <line x1="123" y1="333" x2="256" y2="256"/>
+    <line x1="123" y1="179" x2="256" y2="256"/>
+    <line x1="256" y1="102" x2="256" y2="410" stroke="#325a96" stroke-width="3" opacity="0.6"/>
+    <line x1="123" y1="179" x2="389" y2="333" stroke="#325a96" stroke-width="3" opacity="0.6"/>
+    <line x1="123" y1="333" x2="389" y2="179" stroke="#325a96" stroke-width="3" opacity="0.6"/>
   </g>
+
+  <!-- Outer Neural Nodes -->
+  <g>
+    <circle cx="256" cy="102" r="20" fill="#00f0d0" stroke="#ffffff" stroke-width="3"/>
+    <circle cx="256" cy="102" r="6" fill="#ffffff"/>
+    <circle cx="389" cy="179" r="20" fill="#00f0d0" stroke="#ffffff" stroke-width="3"/>
+    <circle cx="389" cy="179" r="6" fill="#ffffff"/>
+    <circle cx="389" cy="333" r="20" fill="#00f0d0" stroke="#ffffff" stroke-width="3"/>
+    <circle cx="389" cy="333" r="6" fill="#ffffff"/>
+    <circle cx="256" cy="410" r="20" fill="#00f0d0" stroke="#ffffff" stroke-width="3"/>
+    <circle cx="256" cy="410" r="6" fill="#ffffff"/>
+    <circle cx="123" cy="333" r="20" fill="#00f0d0" stroke="#ffffff" stroke-width="3"/>
+    <circle cx="123" cy="333" r="6" fill="#ffffff"/>
+    <circle cx="123" cy="179" r="20" fill="#00f0d0" stroke="#ffffff" stroke-width="3"/>
+    <circle cx="123" cy="179" r="6" fill="#ffffff"/>
+  </g>
+
+  <!-- Center Distributed Intelligence Core -->
+  <circle cx="256" cy="256" r="42" fill="#120c2e" stroke="#00f0e6" stroke-width="5"/>
+  <circle cx="256" cy="256" r="24" fill="#6c2bd9"/>
+  <circle cx="256" cy="256" r="12" fill="#ffffff"/>
 </svg>
