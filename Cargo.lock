@@ -262,6 +262,7 @@ dependencies = [
  "community-core",
  "community-governor",
  "community-model-manager",
+ "community-network",
  "community-protocol",
  "community-scheduler",
  "community-security",

@@ -35,6 +35,12 @@ impl NodeIdentity {
         self.verifying_key
     }
 
+    /// Unique deterministic NodeId derived from Ed25519 public key.
+    pub fn node_id(&self) -> community_core::NodeId {
+        let hex = self.public_key_hex();
+        community_core::NodeId::from_string(format!("node-{}", &hex[..12]))
+    }
+
     /// Sign arbitrary payload bytes.
     pub fn sign(&self, message: &[u8]) -> SignedEnvelope {
         let signature = self.signing_key.sign(message);
@@ -42,6 +48,11 @@ impl NodeIdentity {
             public_key_hex: self.public_key_hex(),
             signature_hex: hex::encode(signature.to_bytes()),
         }
+    }
+
+    /// Verify an envelope with a payload.
+    pub fn verify_envelope(&self, envelope: &SignedEnvelope, payload: &[u8]) -> Result<()> {
+        envelope.verify(payload)
     }
 }
 

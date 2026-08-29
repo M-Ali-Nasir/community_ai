@@ -57,10 +57,10 @@ function stableNodeId(): string {
   return created;
 }
 
+import { resolveWsUrl } from "./useCoordinator.js";
+
 function wsUrl(path: string): string {
-  const url = new URL(path, window.location.origin);
-  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  return url.toString();
+  return resolveWsUrl(path);
 }
 
 export class Contributor {
@@ -154,19 +154,17 @@ export class Contributor {
 
   async start(modelId: string): Promise<void> {
     const gpu = await this.probe();
-    if (!gpu.available) {
-      this.emit({ error: gpu.reason, enabled: false });
-      return;
-    }
     this.modelId = modelId;
     this.governor.setManualPause(false);
     this.frames.start();
-    this.emit({ enabled: true, error: null, modelId, lastEvent: "starting contributor" });
+    this.emit({ enabled: true, error: null, modelId, lastEvent: "joining P2P mesh" });
 
-    this.startEngine();
+    if (gpu.available) {
+      this.startEngine();
+      this.loadModel(modelId);
+    }
     this.connect();
     this.startTicker();
-    this.loadModel(modelId);
   }
 
   stop(): void {

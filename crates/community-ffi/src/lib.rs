@@ -8,13 +8,19 @@ use std::sync::{Mutex, OnceLock};
 
 use community_governor::{GovernorConfig, ResourceGovernor};
 use community_model_manager::ModelManifest;
-use community_protocol::CapabilityProfile;
+use community_network::P2PSwarm;
+use community_protocol::*;
 use community_scheduler::Scheduler;
 use community_security::NodeIdentity;
 
 fn global_governor() -> &'static Mutex<ResourceGovernor> {
     static GOVERNOR: OnceLock<Mutex<ResourceGovernor>> = OnceLock::new();
     GOVERNOR.get_or_init(|| Mutex::new(ResourceGovernor::new(GovernorConfig::default())))
+}
+
+fn global_swarm() -> &'static Mutex<Option<P2PSwarm>> {
+    static SWARM: OnceLock<Mutex<Option<P2PSwarm>>> = OnceLock::new();
+    SWARM.get_or_init(|| Mutex::new(None))
 }
 
 /// Creates a new cryptographic Ed25519 node identity and returns its public key in hex.
@@ -24,6 +30,57 @@ pub extern "C" fn community_ai_generate_identity() -> *mut c_char {
     let id = NodeIdentity::generate();
     let hex = id.public_key_hex();
     CString::new(hex).unwrap().into_raw()
+}
+
+/// Initializes the embedded P2P Swarm engine with a node name and local capability profile.
+#[no_mangle]
+pub extern "C" fn community_ai_init_p2p_swarm(node_name: *const c_char) -> *mut c_char {
+    let name_str = if node_name.is_null() {
+        "mobile-node"
+    } else {
+        unsafe { CStr::from_ptr(node_name) }.to_str().unwrap_or("mobile-node")
+    };
+
+    let identity = NodeIdentity::generate();
+    let peer_id = identity.node_id();
+
+    let profile = CapabilityProfile {
+        node_id: peer_id.clone(),
+        label: name_str.to_string(),
+        kind: NodeKind::DesktopWorker,
+        os: std::env::consts::OS.to_string(),
+        arch: std::env::consts::ARCH.to_string(),
+        cpu: CpuProfile {
+            model: "Embedded Core".to_string(),
+            cores: 8,
+            available_fraction: 0.8,
+        },
+        gpu: None,
+        memory: MemoryProfile {
+            total_mb: 8192,
+            available_mb: 4096,
+        },
+        network: NetworkProfile {
+            latency_ms: 15.0,
+            bandwidth_mbps: 150.0,
+            jitter_ms: 2.0,
+        },
+        user_state: UserState {
+            activity: UserActivity::Idle,
+            thermal_state: ThermalState::Normal,
+            on_battery: false,
+            battery_pct: None,
+        },
+        rpc: None,
+        cached_shards: vec![],
+    };
+
+    let swarm = P2PSwarm::new(identity, profile);
+    let mut guard = global_swarm().lock().unwrap();
+    *guard = Some(swarm);
+
+    let res = format!("{{\"peer_id\": \"{}\", \"status\": \"p2p_swarm_initialized\"}}", peer_id);
+    CString::new(res).unwrap().into_raw()
 }
 
 /// Probes local hardware and updates the Resource Governor.
@@ -116,11 +173,21 @@ mod tests {
     }
 
     #[test]
+    fn test_ffi_p2p_init() {
+        let name = CString::new("test-node").unwrap();
+        let ptr = community_ai_init_p2p_swarm(name.as_ptr());
+        assert!(!ptr.is_null());
+        let c_str = unsafe { CStr::from_ptr(ptr) };
+        assert!(c_str.to_str().unwrap().contains("p2p_swarm_initialized"));
+        community_ai_free_string(ptr);
+    }
+
+    #[test]
     fn test_ffi_governor() {
         let ptr = community_ai_tick_governor(false, false);
         assert!(!ptr.is_null());
-        let json_str = unsafe { CStr::from_ptr(ptr) }.to_str().unwrap();
-        assert!(json_str.contains("ueps"));
+        let c_str = unsafe { CStr::from_ptr(ptr) };
+        assert!(c_str.to_str().unwrap().contains("ueps"));
         community_ai_free_string(ptr);
     }
 }
