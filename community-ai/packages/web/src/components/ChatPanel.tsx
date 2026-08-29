@@ -6,6 +6,7 @@ import {
   type TaskView,
 } from "@community-ai/protocol";
 import type { useCoordinator } from "../lib/useCoordinator.js";
+import type { ContributorStatus } from "../lib/contributor.js";
 
 type Coordinator = ReturnType<typeof useCoordinator>;
 
@@ -75,7 +76,13 @@ function PipelineCard({
   );
 }
 
-export function ChatPanel({ coordinator }: { coordinator: Coordinator }) {
+export function ChatPanel({
+  coordinator,
+  contributorStatus,
+}: {
+  coordinator: Coordinator;
+  contributorStatus?: ContributorStatus | null;
+}) {
   const { state, submit, cancel } = coordinator;
   const [prompt, setPrompt] = useState("");
   const [history, setHistory] = useState<ChatMessage[]>([
@@ -92,8 +99,14 @@ export function ChatPanel({ coordinator }: { coordinator: Coordinator }) {
   const live = state.live;
   const isGenerating =
     live !== null &&
-    live.error === null &&
-    (live.view === null || live.view.status === "running" || live.view.status === "reducing");
+    (live.view === null || live.view.status === "running" || live.view.status === "reducing") &&
+    live.stage !== "completed";
+
+  const isModelReady =
+    !contributorStatus ||
+    contributorStatus.modelPhase === "ready" ||
+    contributorStatus.modelProgress >= 1.0;
+  const prepProgress = Math.round((contributorStatus?.modelProgress ?? 0) * 100);
 
   const onlineNodes = state.nodes.filter(
     (n) => n.online && n.kind !== "client" && n.governor.capacity > 0
@@ -129,7 +142,7 @@ export function ChatPanel({ coordinator }: { coordinator: Coordinator }) {
 
   const handleSend = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!prompt.trim() || isGenerating) return;
+    if (!prompt.trim() || isGenerating || !isModelReady) return;
 
     const userMsg: ChatMessage = { role: "user", content: prompt.trim() };
     const newHistory = [...history, userMsg];
@@ -138,7 +151,7 @@ export function ChatPanel({ coordinator }: { coordinator: Coordinator }) {
 
     const req: JobRequest = {
       kind: "chat",
-      modelId: state.modelId,
+      modelId: state.modelId || "qwen3-14b",
       policy: "adaptive",
       messages: newHistory,
       items: [],
@@ -169,9 +182,11 @@ export function ChatPanel({ coordinator }: { coordinator: Coordinator }) {
       {/* Top Model Info Bar */}
       <div className="chat-topbar">
         <div className="model-badge">
-          <span className="dot online" />
+          <span className={`dot ${isModelReady ? "online" : "busy"}`} />
           <strong>Qwen3 14B Instruct</strong>
-          <span className="badge-tag">Flagship Default</span>
+          <span className="badge-tag">
+            {isModelReady ? "Shard: Ready" : `Preparing Shard ${prepProgress}%`}
+          </span>
         </div>
         <div className="nodes-info">
           <span>{onlineNodes} compute node(s) pooled</span>
@@ -180,6 +195,24 @@ export function ChatPanel({ coordinator }: { coordinator: Coordinator }) {
           </button>
         </div>
       </div>
+
+      {/* Model Shard Preparation Progress Banner (if still loading) */}
+      {!isModelReady ? (
+        <div className="shard-prep-banner">
+          <div className="shard-prep-header">
+            <span className="shard-prep-title">
+              <span className="status-step-spinner" style={{ width: 12, height: 12, display: "inline-block" }} />
+              <strong>Preparing Local Qwen3-14B Shard</strong> ({prepProgress}%)
+            </span>
+            <span className="shard-prep-sub">
+              {contributorStatus?.lastEvent || "Downloading weights & allocating local tensors..."}
+            </span>
+          </div>
+          <div className="progress-bar" style={{ height: 4, marginTop: 6 }}>
+            <div className="progress-fill blue" style={{ width: `${prepProgress}%` }} />
+          </div>
+        </div>
+      ) : null}
 
       {/* Main Messages View */}
       <div className="messages-stream">
@@ -190,7 +223,9 @@ export function ChatPanel({ coordinator }: { coordinator: Coordinator }) {
               <div className="message-author">
                 {msg.role === "user" ? "You" : "Community AI Cluster"}
               </div>
-              <div className="message-text">{msg.content}</div>
+              <div className="message-text" style={{ whiteSpace: "pre-wrap" }}>
+                {msg.content}
+              </div>
               {msg.role === "assistant" ? (
                 <button
                   className="btn-copy"
@@ -214,26 +249,23 @@ export function ChatPanel({ coordinator }: { coordinator: Coordinator }) {
               </div>
               
               {streamedText ? (
-                <div className="message-text">{streamedText}</div>
+                <div className="message-text" style={{ whiteSpace: "pre-wrap" }}>
+                  {streamedText}
+                  <span className="streaming-cursor">▋</span>
+                </div>
               ) : (
                 <div className="generation-status-box">
                   <div className="status-step active">
                     <div className="status-step-spinner" />
-                    <span>{live.statusText || "Initializing distributed neural network..."}</span>
+                    <span>
+                      {live.statusText || "Initializing distributed neural network"}
+                      <span className="blinking-dots">
+                        <span>.</span><span>.</span><span>.</span>
+                      </span>
+                    </span>
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-        ) : null}
-
-        {/* Error Notification if Job Failed */}
-        {live?.error ? (
-          <div className="message-bubble assistant error-bubble">
-            <div className="avatar">⚠️</div>
-            <div className="message-content error-content">
-              <div className="message-author error-author">Mesh Execution Notice</div>
-              <div className="message-text">{live.error}</div>
             </div>
           </div>
         ) : null}
@@ -255,10 +287,14 @@ export function ChatPanel({ coordinator }: { coordinator: Coordinator }) {
         <input
           type="text"
           className="chat-input"
-          placeholder="Ask the distributed cluster anything (e.g. 'Explain quantum computing in simple terms')..."
+          placeholder={
+            !isModelReady
+              ? `⏳ Model shard is preparing on your device (${prepProgress}%)... Prompting enabled once ready.`
+              : "Ask the distributed cluster anything (e.g. 'Explain quantum computing in simple terms')..."
+          }
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          disabled={isGenerating}
+          disabled={isGenerating || !isModelReady}
           autoFocus
         />
         {isGenerating ? (
@@ -272,7 +308,11 @@ export function ChatPanel({ coordinator }: { coordinator: Coordinator }) {
             Stop
           </button>
         ) : (
-          <button type="submit" className="btn-send" disabled={!prompt.trim()}>
+          <button
+            type="submit"
+            className="btn-send"
+            disabled={!prompt.trim() || !isModelReady}
+          >
             Send ➔
           </button>
         )}
