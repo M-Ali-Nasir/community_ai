@@ -12,9 +12,11 @@ type Coordinator = ReturnType<typeof useCoordinator>;
 function PipelineCard({
   pipeline,
   tasks,
+  myPeerId,
 }: {
   pipeline: PipelinePlan;
   tasks: TaskView[];
+  myPeerId?: string;
 }): JSX.Element {
   const measured = tasks.find((t) => t.metrics)?.metrics ?? null;
   const gain = pipeline.pooledMemoryMB / Math.max(pipeline.bestSingleMemoryMB, 1);
@@ -32,18 +34,27 @@ function PipelineCard({
       </div>
 
       <div className="pipeline-nodes">
-        {pipeline.members.map((member, i) => (
-          <div className="pipeline-node" key={member.nodeId}>
-            <div className="node-rank">{i === 0 ? "HEAD NODE" : `STAGE ${i}`}</div>
-            <div className="node-name">{member.label}</div>
-            <div className="node-meter">
-              <span style={{ width: `${Math.round(member.share * 100)}%` }} />
+        {pipeline.members.map((member, i) => {
+          const isMe = member.nodeId === myPeerId;
+          const anonymizedLabel = isMe
+            ? "Your Node (Active)"
+            : i === 0
+            ? "Head Cluster Peer"
+            : `Anonymous Peer #${i + 1}`;
+
+          return (
+            <div className="pipeline-node" key={member.nodeId}>
+              <div className="node-rank">{i === 0 ? "HEAD NODE" : `STAGE ${i}`}</div>
+              <div className="node-name">{anonymizedLabel}</div>
+              <div className="node-meter">
+                <span style={{ width: `${Math.round(member.share * 100)}%` }} />
+              </div>
+              <div className="node-meta">
+                {Math.round(member.share * 100)}% layers ({member.assignedMB} MB)
+              </div>
             </div>
-            <div className="node-meta">
-              {Math.round(member.share * 100)}% layers ({member.assignedMB} MB)
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="pipeline-metrics">
@@ -232,6 +243,7 @@ export function ChatPanel({ coordinator }: { coordinator: Coordinator }) {
           <PipelineCard
             pipeline={live.plan.pipeline}
             tasks={live.plan.tasks}
+            myPeerId={state.peerId}
           />
         ) : null}
 
