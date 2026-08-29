@@ -1,0 +1,14 @@
+[package]
+name = "community-scheduler"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+community-core.workspace = true
+community-protocol.workspace = true
+community-model-manager.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+thiserror.workspace = true

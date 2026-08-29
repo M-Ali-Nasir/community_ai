@@ -1,0 +1,17 @@
+[package]
+name = "community-runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+community-core.workspace = true
+community-protocol.workspace = true
+community-model-manager.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+serde.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+bytes.workspace = true
+rand.workspace = true

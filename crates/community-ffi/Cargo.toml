@@ -1,0 +1,19 @@
+[package]
+name = "community-ffi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+community-core.workspace = true
+community-protocol.workspace = true
+community-governor.workspace = true
+community-model-manager.workspace = true
+community-scheduler.workspace = true
+community-security.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+libc = "0.2"

@@ -1,0 +1,20 @@
+[package]
+name = "community-simulator"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+community-core.workspace = true
+community-protocol.workspace = true
+community-governor.workspace = true
+community-model-manager.workspace = true
+community-runtime.workspace = true
+community-scheduler.workspace = true
+community-network.workspace = true
+tokio = { workspace = true, features = ["full"] }
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+rand.workspace = true
+clap.workspace = true

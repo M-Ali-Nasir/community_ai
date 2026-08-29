@@ -1,0 +1,26 @@
+{
+  "name": "@community-ai/web",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@community-ai/protocol": "*",
+    "@mlc-ai/web-llm": "^0.2.79",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@webgpu/types": "^0.1.72",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  }
+}

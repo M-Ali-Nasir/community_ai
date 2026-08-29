@@ -1,0 +1,22 @@
+[Unit]
+Description=Community AI Distributed Worker Daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=community-ai
+Group=community-ai
+ExecStart=/usr/local/bin/community-daemon --name %H --coordinator 127.0.0.1:8080 --cache-dir /var/lib/community-ai/cache
+Restart=always
+RestartSec=5s
+LimitNOFILE=65536
+Nice=10
+MemoryHigh=75%
+MemoryMax=85%
+CPUSchedulingPolicy=other
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6
+
+[Install]
+WantedBy=multi-user.target
