@@ -4,7 +4,6 @@ import {
   type JobRequest,
   type PipelinePlan,
   type TaskView,
-  MODEL_CATALOG,
 } from "@community-ai/protocol";
 import type { useCoordinator } from "../lib/useCoordinator.js";
 
@@ -102,7 +101,7 @@ export function ChatPanel({ coordinator }: { coordinator: Coordinator }) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [history, streamedText]);
+  }, [history, streamedText, live?.statusText]);
 
   // When response completes, record it into conversational history
   useEffect(() => {
@@ -194,7 +193,7 @@ export function ChatPanel({ coordinator }: { coordinator: Coordinator }) {
           </div>
         ))}
 
-        {/* Live Streaming Assistant Output */}
+        {/* Live Streaming Assistant Output with Status Progression */}
         {isGenerating && live ? (
           <div className="message-bubble assistant streaming">
             <div className="avatar">🤖</div>
@@ -202,9 +201,28 @@ export function ChatPanel({ coordinator }: { coordinator: Coordinator }) {
               <div className="message-author">
                 Community AI Cluster <span className="streaming-dot" />
               </div>
-              <div className="message-text">
-                {streamedText || "Generating tokens across cluster..."}
-              </div>
+              
+              {streamedText ? (
+                <div className="message-text">{streamedText}</div>
+              ) : (
+                <div className="generation-status-box">
+                  <div className="status-step active">
+                    <div className="status-step-spinner" />
+                    <span>{live.statusText || "Initializing distributed neural network..."}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+
+        {/* Error Notification if Job Failed */}
+        {live?.error ? (
+          <div className="message-bubble assistant error-bubble">
+            <div className="avatar">⚠️</div>
+            <div className="message-content error-content">
+              <div className="message-author error-author">Mesh Execution Notice</div>
+              <div className="message-text">{live.error}</div>
             </div>
           </div>
         ) : null}
