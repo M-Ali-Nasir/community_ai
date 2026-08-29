@@ -78,8 +78,7 @@ body {
   text-transform: uppercase;
 }
 
-.cluster-status-pill,
-.cluster-status-pill-btn {
+.cluster-status-pill {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -90,13 +89,16 @@ body {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-main);
-  cursor: pointer;
-  transition: all 0.2s;
 }
 
-.cluster-status-pill-btn:hover {
-  background: var(--bg-hover);
-  border-color: var(--accent-blue);
+.peer-badge {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  font-size: 11px;
+  font-family: monospace;
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 /* Modal Overlay & Card */
