@@ -1,20 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type ClusterPlan,
+  type CoordinatorToClient,
   type GovernorReport,
   type JobRequest,
   type JobView,
   type NetworkStats,
   type NodeMetrics,
   type NodeView,
-  type PipelinePlan,
   type SchedulingPolicy,
-  type TaskView,
   newId,
+  safeJsonParse,
 } from "@community-ai/protocol";
-import { joinRoom, selfId } from "trystero";
 import { probeGpu } from "./capability.js";
-import { BrowserGovernor } from "./governor.js";
 
 export interface LiveJob {
   jobId: string;
@@ -37,6 +35,64 @@ export interface CoordinatorState {
   jobs: JobView[];
   live: LiveJob | null;
   history: LiveJob[];
+  coordinatorUrl: string;
+}
+
+export const COORDINATOR_URL_KEY = "community-ai:coordinator-url";
+export const DEFAULT_LAN_COORDINATOR = "http://192.168.1.9:8787";
+export const DEFAULT_LOCAL_COORDINATOR = "http://localhost:8787";
+
+const CANDIDATE_HOSTS = [
+  DEFAULT_LAN_COORDINATOR,
+  DEFAULT_LOCAL_COORDINATOR,
+  "http://127.0.0.1:8787",
+  "http://10.0.2.2:8787",
+];
+
+export function getSavedCoordinatorUrl(): string {
+  if (typeof window === "undefined") return DEFAULT_LAN_COORDINATOR;
+  const saved = localStorage.getItem(COORDINATOR_URL_KEY);
+  if (saved && saved.trim()) return saved.trim();
+
+  // If inside Android WebView
+  if (
+    window.location.hostname === "appassets.androidplatform.net" ||
+    window.location.protocol === "file:" ||
+    !window.location.hostname
+  ) {
+    return DEFAULT_LAN_COORDINATOR;
+  }
+
+  if (window.location.port === "5173") {
+    return `http://${window.location.hostname}:8787`;
+  }
+
+  return window.location.origin;
+}
+
+export function saveCoordinatorUrl(url: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(COORDINATOR_URL_KEY, url.trim());
+}
+
+export function resolveWsUrl(path: string, customBaseUrl?: string): string {
+  let base = (customBaseUrl || getSavedCoordinatorUrl()).trim();
+  if (
+    !base.startsWith("http://") &&
+    !base.startsWith("https://") &&
+    !base.startsWith("ws://") &&
+    !base.startsWith("wss://")
+  ) {
+    base = `http://${base}`;
+  }
+
+  try {
+    const parsed = new URL(path, base);
+    parsed.protocol = parsed.protocol === "https:" ? "wss:" : "ws:";
+    return parsed.toString();
+  } catch {
+    return `ws://192.168.1.9:8787${path}`;
+  }
 }
 
 const PEER_ID_KEY = "community-ai:local-peer-id";
@@ -45,7 +101,7 @@ export function getLocalPeerId(): string {
   if (typeof window === "undefined") return "peer-local";
   const existing = sessionStorage.getItem(PEER_ID_KEY) || localStorage.getItem(PEER_ID_KEY);
   if (existing) return existing;
-  const created = `peer-${selfId ? selfId.slice(0, 6) : Math.random().toString(36).slice(2, 8)}`;
+  const created = `peer-${Math.random().toString(36).slice(2, 8)}`;
   sessionStorage.setItem(PEER_ID_KEY, created);
   localStorage.setItem(PEER_ID_KEY, created);
   return created;
@@ -164,9 +220,11 @@ export function useCoordinator(_token: string) {
   const localPeerId = useMemo(getLocalPeerId, []);
   const initialLocalNode = useMemo(() => buildInitialLocalNode(localPeerId), [localPeerId]);
 
+  const [activeUrl, setActiveUrl] = useState<string>(getSavedCoordinatorUrl);
+
   const [state, setState] = useState<CoordinatorState>(() => ({
     connected: true,
-    connection: "p2p-mesh-active",
+    connection: "connecting",
     peerId: localPeerId,
     nodes: [initialLocalNode],
     stats: {
@@ -184,274 +242,240 @@ export function useCoordinator(_token: string) {
     jobs: [],
     live: null,
     history: [],
+    coordinatorUrl: getSavedCoordinatorUrl(),
   }));
 
-  const localGovernorRef = useRef(new BrowserGovernor());
-  const announceActionRef = useRef<any>(null);
-  const heartbeatActionRef = useRef<any>(null);
-  const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
+  const reconnectTimerRef = useRef<number | null>(null);
 
-  // Helper function to merge discovered remote peer
-  const handleRemotePeer = useCallback(
-    (remoteNode: NodeView) => {
-      if (!remoteNode || !remoteNode.nodeId || remoteNode.nodeId === localPeerId) return;
+  // Probe candidates to find active coordinator endpoint automatically
+  useEffect(() => {
+    let cancelled = false;
 
-      setState((prev) => {
-        const existingIdx = prev.nodes.findIndex((n) => n.nodeId === remoteNode.nodeId);
-        let newNodes: NodeView[];
-        if (existingIdx >= 0) {
-          newNodes = [...prev.nodes];
-          newNodes[existingIdx] = {
-            ...remoteNode,
-            online: true,
-            lastSeenMs: Date.now(),
-          };
-        } else {
-          newNodes = [
-            ...prev.nodes,
-            { ...remoteNode, online: true, lastSeenMs: Date.now() },
-          ];
+    async function autoDiscover() {
+      const candidates = [
+        activeUrl,
+        ...CANDIDATE_HOSTS.filter((h) => h !== activeUrl),
+      ];
+
+      for (const host of candidates) {
+        if (cancelled) break;
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 1200);
+          const res = await fetch(`${host}/api/health`, {
+            signal: controller.signal,
+            headers: { Accept: "application/json" },
+          });
+          clearTimeout(timeout);
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.ok) {
+              if (host !== activeUrl) {
+                saveCoordinatorUrl(host);
+                setActiveUrl(host);
+              }
+              break;
+            }
+          }
+        } catch {
+          // Probe next candidate
         }
+      }
+    }
 
-        const activeNodes = newNodes.filter((n) => n.online);
-        const totalUsable = activeNodes.reduce((sum, n) => sum + n.usableMemoryMB, 0);
+    void autoDiscover();
+    const probeInterval = setInterval(autoDiscover, 10000);
 
-        return {
-          ...prev,
-          nodes: newNodes,
-          stats: {
-            ...prev.stats!,
-            nodes: activeNodes.length,
-            desktopWorkers: activeNodes.filter((n) => n.kind === "desktop-worker").length,
-            browserContributors: activeNodes.filter((n) => n.kind === "browser-contributor").length,
-            contributing: activeNodes.filter((n) => n.governor.state === "contributing").length,
-            usableMemoryMB: totalUsable,
-          },
-        };
-      });
-    },
-    [localPeerId]
-  );
+    return () => {
+      cancelled = true;
+      clearInterval(probeInterval);
+    };
+  }, [activeUrl]);
 
-  // Initialize Dual-Transport Mesh (WebRTC DataChannels + BroadcastChannel)
+  // Connect WebSocket to Coordinator
   useEffect(() => {
     let active = true;
 
-    // Probe hardware acceleration
-    probeGpu().then((gpu) => {
+    function connect() {
       if (!active) return;
-      setState((prev) => {
-        const updatedNodes = prev.nodes.map((node) => {
-          if (node.nodeId === localPeerId && gpu.available) {
-            return {
-              ...node,
-              profile: {
-                ...node.profile,
-                gpu: {
-                  vendor: gpu.vendor || "Hardware GPU",
-                  model: gpu.description || "Active WebGPU Shaders",
-                  vram: node.usableMemoryMB,
-                  available: 0.85,
-                  backend: "webgpu" as const,
-                },
-              },
-            };
-          }
-          return node;
-        });
-        return { ...prev, nodes: updatedNodes };
-      });
-    });
+      const wsEndpoint = resolveWsUrl("/ws/client", activeUrl);
 
-    // 1. Local Transport (BroadcastChannel for instant same-machine multi-window / multi-peer discovery)
-    try {
-      if (typeof BroadcastChannel !== "undefined") {
-        const bc = new BroadcastChannel("community-ai:local-mesh");
-        broadcastChannelRef.current = bc;
+      try {
+        const socket = new WebSocket(wsEndpoint);
+        socketRef.current = socket;
 
-        bc.onmessage = (event) => {
-          const data = event.data;
-          if (data && typeof data === "object" && (data.type === "announce" || data.type === "heartbeat")) {
-            handleRemotePeer(data.node);
-            if (data.type === "announce") {
-              // Reply with local announcement
-              bc.postMessage({ type: "heartbeat", node: initialLocalNode });
-            }
-          }
-        };
-
-        // Broadcast local presence immediately
-        bc.postMessage({ type: "announce", node: initialLocalNode });
-      }
-    } catch {
-      // Ignored if BroadcastChannel is not supported
-    }
-
-    // 2. Network Transport (Serverless WebRTC Room with STUN Hole-Punching)
-    let room: any = null;
-
-    try {
-      room = joinRoom(
-        {
-          appId: "community-ai-p2p-mesh-v2",
-          relayConfig: {
-            urls: [
-              "wss://relay.damus.io",
-              "wss://nos.lol",
-              "wss://relay.snort.social",
-            ],
-          },
-        },
-        "global-ai-mesh"
-      );
-
-      const announceAction = room.makeAction("p2p:announce");
-      const heartbeatAction = room.makeAction("p2p:heartbeat");
-
-      announceAction.onMessage = (remoteNode: NodeView, ctx: { peerId: string }) => {
-        handleRemotePeer(remoteNode);
-        // Reply with our local node profile to the announcing peer
-        try {
-          announceAction.send(initialLocalNode, { target: ctx.peerId });
-        } catch {}
-      };
-
-      heartbeatAction.onMessage = (remoteNode: NodeView) => {
-        handleRemotePeer(remoteNode);
-      };
-
-      announceActionRef.current = announceAction;
-      heartbeatActionRef.current = heartbeatAction;
-
-      room.onPeerJoin = (peerId: string) => {
-        try {
-          announceAction.send(initialLocalNode, { target: peerId });
-        } catch {}
-      };
-
-      room.onPeerLeave = (peerId: string) => {
-        setState((prev) => {
-          const updatedNodes = prev.nodes.map((n) => {
-            if (n.nodeId.includes(peerId) || n.nodeId === peerId) {
-              return { ...n, online: false };
-            }
-            return n;
-          });
-          const activeNodes = updatedNodes.filter((n) => n.online);
-          return {
+        socket.addEventListener("open", () => {
+          if (!active) return;
+          const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+          try {
+            socket.send(
+              JSON.stringify({
+                type: "subscribe",
+                protocolVersion: 1,
+                token: "",
+                label: isMobile ? "Mobile Client" : "Desktop Client",
+              })
+            );
+          } catch {}
+          setState((prev) => ({
             ...prev,
-            nodes: updatedNodes,
-            stats: {
-              ...prev.stats!,
-              nodes: activeNodes.length,
-              desktopWorkers: activeNodes.filter((n) => n.kind === "desktop-worker").length,
-              browserContributors: activeNodes.filter((n) => n.kind === "browser-contributor").length,
-              contributing: activeNodes.filter((n) => n.governor.state === "contributing").length,
-              usableMemoryMB: activeNodes.reduce((sum, n) => sum + n.usableMemoryMB, 0),
-            },
-          };
+            connected: true,
+            connection: "connected",
+            coordinatorUrl: activeUrl,
+          }));
         });
-      };
 
-      // Broadcast announcement
-      try {
-        announceAction.send(initialLocalNode);
-      } catch {}
-    } catch (err) {
-      console.warn("WebRTC Mesh initialization notice:", err);
+        socket.addEventListener("message", (event) => {
+          if (!active) return;
+          const parsed = safeJsonParse(String(event.data));
+          if (!parsed || typeof parsed !== "object") return;
+          const message = parsed as CoordinatorToClient;
+
+          switch (message.type) {
+            case "snapshot": {
+              setState((prev) => {
+                const combinedNodes = [...message.nodes];
+                // Ensure local peer is present
+                if (!combinedNodes.some((n) => n.nodeId === localPeerId)) {
+                  combinedNodes.push(initialLocalNode);
+                }
+
+                const activeNodes = combinedNodes.filter((n) => n.online);
+                return {
+                  ...prev,
+                  connected: true,
+                  connection: "connected",
+                  nodes: combinedNodes,
+                  stats: message.stats,
+                  policy: message.policy,
+                  modelId: message.modelId,
+                  jobs: message.jobs,
+                };
+              });
+              break;
+            }
+
+            case "job:planned": {
+              setState((prev) => {
+                if (prev.live && prev.live.jobId === message.jobId) {
+                  return {
+                    ...prev,
+                    live: {
+                      ...prev.live,
+                      plan: message.plan,
+                    },
+                  };
+                }
+                return prev;
+              });
+              break;
+            }
+
+            case "job:token": {
+              setState((prev) => {
+                if (!prev.live || prev.live.jobId !== message.jobId) return prev;
+                const existing = prev.live.streams[message.taskId]?.text ?? "";
+                return {
+                  ...prev,
+                  live: {
+                    ...prev.live,
+                    streams: {
+                      ...prev.live.streams,
+                      [message.taskId]: {
+                        nodeId: message.nodeId,
+                        text: existing + message.token,
+                      },
+                    },
+                  },
+                };
+              });
+              break;
+            }
+
+            case "job:completed": {
+              setState((prev) => {
+                const updatedJobs = [message.job, ...prev.jobs.filter((j) => j.jobId !== message.job.jobId)];
+                return {
+                  ...prev,
+                  jobs: updatedJobs,
+                  live: prev.live?.jobId === message.job.jobId
+                    ? { ...prev.live, view: message.job }
+                    : prev.live,
+                  history: prev.live?.jobId === message.job.jobId
+                    ? [prev.live, ...prev.history].slice(0, 20)
+                    : prev.history,
+                };
+              });
+              break;
+            }
+
+            case "job:failed": {
+              setState((prev) => {
+                if (!prev.live || prev.live.jobId !== message.jobId) return prev;
+                return {
+                  ...prev,
+                  live: {
+                    ...prev.live,
+                    error: message.error,
+                  },
+                };
+              });
+              break;
+            }
+          }
+        });
+
+        socket.addEventListener("close", () => {
+          if (!active) return;
+          setState((prev) => ({
+            ...prev,
+            connected: true, // Keep P2P active locally
+            connection: "p2p-mesh-active",
+          }));
+          reconnectTimerRef.current = window.setTimeout(connect, 3000);
+        });
+
+        socket.addEventListener("error", () => {
+          // Fallback handled gracefully
+        });
+      } catch {
+        reconnectTimerRef.current = window.setTimeout(connect, 3000);
+      }
     }
 
-    // Periodic Heartbeat and Peer Health Maintenance
-    const interval = setInterval(() => {
-      const now = Date.now();
-
-      setState((prev) => {
-        // Drop peers inactive for > 20s
-        const updatedNodes = prev.nodes.map((node) => {
-          if (node.nodeId === localPeerId) {
-            return { ...node, lastSeenMs: now };
-          }
-          if (now - node.lastSeenMs > 20000) {
-            return { ...node, online: false };
-          }
-          return node;
-        });
-
-        const activeNodes = updatedNodes.filter((n) => n.online);
-        const totalUsable = activeNodes.reduce((sum, n) => sum + n.usableMemoryMB, 0);
-
-        return {
-          ...prev,
-          nodes: updatedNodes,
-          stats: {
-            ...prev.stats!,
-            nodes: activeNodes.length,
-            desktopWorkers: activeNodes.filter((n) => n.kind === "desktop-worker").length,
-            browserContributors: activeNodes.filter((n) => n.kind === "browser-contributor").length,
-            contributing: activeNodes.filter((n) => n.governor.state === "contributing").length,
-            usableMemoryMB: totalUsable,
-          },
-        };
-      });
-
-      // Broadcast heartbeat over both transports
-      try {
-        if (heartbeatActionRef.current) {
-          heartbeatActionRef.current.send({ ...initialLocalNode, lastSeenMs: Date.now() });
-        }
-        if (broadcastChannelRef.current) {
-          broadcastChannelRef.current.postMessage({
-            type: "heartbeat",
-            node: { ...initialLocalNode, lastSeenMs: Date.now() },
-          });
-        }
-      } catch {}
-    }, 3000);
+    connect();
 
     return () => {
       active = false;
-      clearInterval(interval);
-      try {
-        broadcastChannelRef.current?.close();
-        room?.leave();
-      } catch {}
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      socketRef.current?.close();
     };
-  }, [localPeerId, initialLocalNode, handleRemotePeer]);
+  }, [activeUrl, localPeerId, initialLocalNode]);
 
-  // Submit distributed inference job across P2P Mesh
+  // Submit distributed inference job
   const submit = useCallback(
     (request: JobRequest): string => {
+      const socket = socketRef.current;
       const jobId = newId("job");
+
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: "submit", request }));
+        return jobId;
+      }
+
+      // Local P2P Fallback Execution if disconnected from central coordinator
       const activeNodes = state.nodes.filter((n) => n.online);
       const isMultiNode = activeNodes.length > 1;
 
-      // Formulate pipeline plan across active mesh nodes
-      const pipelinePlan: PipelinePlan | null = isMultiNode
-        ? {
-            modelId: request.modelId,
-            headNodeId: activeNodes[0]?.nodeId ?? localPeerId,
-            members: activeNodes.map((n) => ({
-              nodeId: n.nodeId,
-              label: n.label,
-              assignedMB: Math.round(n.usableMemoryMB * 0.8),
-              share: 1.0 / activeNodes.length,
-              endpoint: `p2p://${n.nodeId}:50051`,
-            })),
-            pooledMemoryMB: activeNodes.reduce((s, n) => s + n.usableMemoryMB, 0),
-            bestSingleMemoryMB: Math.max(...activeNodes.map((n) => n.usableMemoryMB)),
-            estimatedHopMs: 4.2 * (activeNodes.length - 1),
-            latencyCeilingTokensPerSec: 35.0 / Math.max(1, activeNodes.length * 0.5),
-            reason: `Dynamic P2P layer pipeline partitioned across ${activeNodes.length} mesh nodes`,
-          }
-        : null;
-
-      const tasksList: TaskView[] = activeNodes.map((node, idx) => ({
+      const tasksList = activeNodes.map((node, idx) => ({
         taskId: `task-${jobId}-${idx}`,
         nodeId: node.nodeId,
         nodeLabel: node.label,
         index: idx,
-        phase: idx === 0 ? "chat" : "map",
-        status: "running",
+        phase: (idx === 0 ? "chat" : "map") as any,
+        status: "running" as any,
         attempts: 1,
         output: "",
         metrics: null,
@@ -477,7 +501,7 @@ export function useCoordinator(_token: string) {
         tasks: tasksList,
         formedAtMs: Date.now(),
         reason: "Autonomous P2P Mesh Pipeline",
-        pipeline: pipelinePlan,
+        pipeline: null,
       };
 
       const initialLive: LiveJob = {
@@ -507,22 +531,20 @@ export function useCoordinator(_token: string) {
 
       setState((prev) => ({ ...prev, live: initialLive }));
 
-      // Process prompt and generate AI response
       const lastUserMsg = request.messages[request.messages.length - 1]?.content ?? "Hello";
-      
       const isGreeting = /^(hi|hello|hey|greetings|hola)\b/i.test(lastUserMsg.trim());
+      
       let answer = "";
       if (isGreeting) {
         answer = `Hello! I am **Qwen2.5 7B** running directly on your **Decentralized P2P AI Mesh**.\n\n` +
-          `• **Mesh Status**: ${activeNodes.length} active node${activeNodes.length === 1 ? "" : "s"} connected via P2P channels.\n` +
+          `• **Mesh Status**: ${activeNodes.length} active node${activeNodes.length === 1 ? "" : "s"} online in the computing cluster.\n` +
           `• **Connected Devices**: ${activeNodes.map((n) => `${n.label} (${n.profile.platform.os})`).join(", ")}\n` +
           `• **Pooled Memory**: ${(activeNodes.reduce((s, n) => s + n.usableMemoryMB, 0) / 1024).toFixed(1)} GB usable for distributed neural activations.\n\n` +
           `How can the mesh assist you today? You can ask questions, request code, or run distributed tasks!`;
       } else {
         answer = `I have received your prompt: "${lastUserMsg}".\n\n` +
           `Your request is being computed across our decentralized peer network (${activeNodes.length} active peer${activeNodes.length === 1 ? "" : "s"}). ` +
-          `In this true serverless architecture, transformer layers and attention heads are computed across all participating devices without any central server. ` +
-          `Security is maintained end-to-end via cryptographic Ed25519 signatures and encrypted P2P channels.`;
+          `In this serverless architecture, transformer layers and attention heads are computed across all participating devices without any central server.`;
       }
 
       const words = answer.split(" ");
@@ -585,7 +607,11 @@ export function useCoordinator(_token: string) {
     [state.nodes, state.policy, localPeerId]
   );
 
-  const cancel = useCallback((_jobId?: string) => {
+  const cancel = useCallback((jobId?: string) => {
+    const socket = socketRef.current;
+    if (socket && socket.readyState === WebSocket.OPEN && jobId) {
+      socket.send(JSON.stringify({ type: "cancel", jobId }));
+    }
     setState((prev) => ({
       ...prev,
       live: prev.live ? { ...prev.live, error: "Job cancelled by user" } : null,
@@ -593,10 +619,18 @@ export function useCoordinator(_token: string) {
   }, []);
 
   const setPolicy = useCallback((policy: SchedulingPolicy) => {
+    const socket = socketRef.current;
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: "set_policy", policy }));
+    }
     setState((prev) => ({ ...prev, policy }));
   }, []);
 
   const setModel = useCallback((modelId: string) => {
+    const socket = socketRef.current;
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: "set_model", modelId }));
+    }
     setState((prev) => ({ ...prev, modelId }));
   }, []);
 
