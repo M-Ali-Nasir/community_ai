@@ -34,7 +34,9 @@ export function App() {
       {/* Sleek Topbar */}
       <header className="topbar">
         <div className="brand">
-          <div className="logo-icon">🌐</div>
+          <div className="logo-icon">
+            <img src="./icon.svg" alt="Community AI" width="30" height="30" style={{ borderRadius: 7, display: "block" }} />
+          </div>
           <div className="brand-text">
             <strong>Community AI</strong>
             <span className="brand-tag">True P2P Decentralized Mesh</span>
