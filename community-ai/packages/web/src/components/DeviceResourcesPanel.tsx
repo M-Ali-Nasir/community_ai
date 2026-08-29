@@ -161,7 +161,7 @@ export function DeviceResourcesPanel({
           <div className="table-row">
             <span className="row-label">Assigned Model Shards</span>
             <span className="row-value mono">
-              {isContributing ? "qwen3-14b_shard_001_of_006" : "None cached"}
+              {isContributing ? "community_ai_shard_001_of_006" : "None cached"}
             </span>
           </div>
 

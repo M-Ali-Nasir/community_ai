@@ -214,7 +214,7 @@ export class Contributor {
       modelPhase: "downloading",
       modelProgress: 0.1,
       modelId,
-      lastEvent: `Downloading ${entry?.displayName || "Qwen3 14B"} shard (1.48 GB)... 10%`,
+      lastEvent: `Downloading ${entry?.displayName || "Community AI"} shard (1.48 GB)... 10%`,
     });
 
     if (this.engine && entry?.webllmMatch) {
@@ -227,7 +227,7 @@ export class Contributor {
         modelPhase: "downloading",
         modelProgress: 0.45,
         modelId,
-        lastEvent: `Downloading ${entry?.displayName || "Qwen3 14B"} shard... 45%`,
+        lastEvent: `Downloading ${entry?.displayName || "Community AI"} shard... 45%`,
       });
     }, 400);
 
@@ -246,7 +246,7 @@ export class Contributor {
         modelPhase: "ready",
         modelProgress: 1.0,
         modelId,
-        lastEvent: `${entry?.displayName || "Qwen3 14B"} Shard 1/6 (Layers 00..08) Resident & Ready`,
+        lastEvent: `${entry?.displayName || "Community AI"} Shard 1/6 (Layers 00..08) Resident & Ready`,
       });
     }, 1500);
   }

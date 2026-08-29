@@ -1,12 +1,12 @@
 /**
- * Decentralized Intelligence Engine (Qwen3-14B Instruction Processor)
+ * Decentralized Intelligence Engine (Community AI Instruction Processor)
  *
  * Produces accurate, articulate, context-aware responses matching
  * high-level LLM capabilities across programming, math, reasoning,
  * technical explanations, and general conversation.
  */
 
-export function generateModelResponse(prompt: string, modelName: string = "Qwen3 14B"): string {
+export function generateModelResponse(prompt: string, modelName: string = "Community AI"): string {
   const p = prompt.trim();
   const q = p.toLowerCase();
 
@@ -76,7 +76,7 @@ export function generateModelResponse(prompt: string, modelName: string = "Qwen3
   // 2. Greetings / Introduction
   if (/^(hi|hello|hey|greetings|hola|good morning|good evening|good afternoon)\b/i.test(q)) {
     return (
-      `Hello! I am **${modelName} Instruct**, your AI assistant. How can I help you today? ` +
+      `Hello! I am **${modelName}**, your AI assistant. How can I help you today? ` +
       `Feel free to ask me to write code, solve problems, explain complex topics, or assist with any task.`
     );
   }

@@ -89,7 +89,7 @@ export function ChatPanel({
     {
       role: "assistant",
       content:
-        "Hello! I am Qwen3 14B Instruct. Ask me anything, request code, or explore ideas!",
+        "Hello! I am Community AI. Ask me anything, request code, or explore ideas!",
     },
   ]);
   const [maxTokens, setMaxTokens] = useState(256);
@@ -183,9 +183,9 @@ export function ChatPanel({
       <div className="chat-topbar">
         <div className="model-badge">
           <span className={`dot ${isModelReady ? "online" : "busy"}`} />
-          <strong>Qwen3 14B Instruct</strong>
+          <strong>Community AI</strong>
           <span className="badge-tag">
-            {isModelReady ? "Shard: Ready" : `Preparing Shard ${prepProgress}%`}
+            {isModelReady ? "Ready" : `Preparing Shards ${prepProgress}%`}
           </span>
         </div>
         <div className="nodes-info">
@@ -202,7 +202,7 @@ export function ChatPanel({
           <div className="shard-prep-header">
             <span className="shard-prep-title">
               <span className="status-step-spinner" style={{ width: 12, height: 12, display: "inline-block" }} />
-              <strong>Preparing Local Qwen3-14B Shard</strong> ({prepProgress}%)
+              <strong>Preparing Local Community AI Shards</strong> ({prepProgress}%)
             </span>
             <span className="shard-prep-sub">
               {contributorStatus?.lastEvent || "Downloading weights & allocating local tensors..."}

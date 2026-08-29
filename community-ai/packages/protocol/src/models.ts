@@ -23,7 +23,7 @@ export interface ModelEntry {
 export const MODEL_CATALOG: ModelEntry[] = [
   {
     id: "qwen3-14b",
-    displayName: "Qwen3 14B Instruct",
+    displayName: "Community AI",
     paramsB: 14.7,
     license: "Apache-2.0",
     q4SizeMB: 8900,

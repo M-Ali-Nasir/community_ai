@@ -186,7 +186,7 @@ function buildInitialLocalNode(peerId: string): NodeView {
         engine: isMobile ? "webllm" : "node-llama-cpp",
         ready: true,
         loadedModels: ["qwen3-14b"],
-        supportedModels: ["qwen3-14b", "qwen2.5-0.5b"],
+        supportedModels: ["qwen3-14b"],
         rpc: {
           endpoint: `p2p://${peerId}:50051`,
           offeredMemoryMB: Math.round(ramGB * 1024 * 0.5),
@@ -585,7 +585,7 @@ export function useCoordinator(_token: string) {
       streamTimersRef.current.push(t1);
 
       const lastUserMsg = request.messages[request.messages.length - 1]?.content ?? "Hello";
-      const answer = generateModelResponse(lastUserMsg, "Qwen3 14B");
+      const answer = generateModelResponse(lastUserMsg, "Community AI");
 
       const words = answer.split(" ");
       let currentIdx = 0;
