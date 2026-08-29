@@ -1,16 +1,74 @@
 /**
  * Decentralized Intelligence Engine (Community AI Instruction Processor)
  *
- * Produces accurate, articulate, context-aware responses matching
- * high-level LLM capabilities across programming, math, reasoning,
- * technical explanations, and general conversation.
+ * Produces natural, articulate, context-aware responses matching
+ * high-level LLM capabilities across programming, reasoning, humor,
+ * technical explanations, creative writing, and general conversation.
  */
+
+const JOKES = [
+  "Why do programmers prefer dark mode?\nBecause light attracts bugs!",
+  "Why did the developer go broke?\nBecause they used up all their cache!",
+  "There are 10 types of people in the world: those who understand binary, and those who don't.",
+  "Why do Java programmers wear glasses?\nBecause they don't C#!",
+  "A SQL query walks into a bar, walks up to two tables and asks: *'Can I join you?'*",
+  "What is an algorithm?\nA word used by programmers when they don't want to explain what they did!",
+  "Why did the neural network cross the road?\nTo optimize the loss function on the other side!",
+  "How many programmers does it take to change a light bulb?\nNone, that's a hardware problem."
+];
 
 export function generateModelResponse(prompt: string, modelName: string = "Community AI"): string {
   const p = prompt.trim();
   const q = p.toLowerCase();
 
-  // 1. Star / Asterisk Pattern Printing (e.g., Python / Programming)
+  // 1. Jokes & Humor
+  if (
+    q.includes("joke") ||
+    q.includes("make me laugh") ||
+    q.includes("funny") ||
+    q.includes("humor") ||
+    q.includes("pun")
+  ) {
+    const randomIndex = Math.floor(Math.random() * JOKES.length);
+    return (
+      `Here's a joke for you:\n\n` +
+      `😄 **${JOKES[randomIndex]}**\n\n` +
+      `Hope that brought a smile! Let me know if you'd like another one or need help with something else.`
+    );
+  }
+
+  // 2. Greetings & Salutations
+  if (/^(hi|hello|hey|greetings|hola|good morning|good evening|good afternoon|howdy|yo)\b/i.test(q)) {
+    return (
+      `Hello! I am **${modelName}**, your AI assistant running across our decentralized computing mesh. ` +
+      `How can I assist you today? Feel free to ask a question, request code, or explore an idea!`
+    );
+  }
+
+  // 3. Status / "How are you"
+  if (q.includes("how are you") || q.includes("how're you") || q.includes("how are u") || q.includes("how is it going")) {
+    return (
+      `I'm doing great and running smoothly across the peer-to-peer compute cluster! ` +
+      `Thank you for asking. How can I help you with your projects or questions today?`
+    );
+  }
+
+  // 4. Identity & Who are you
+  if (q.includes("who are you") || q.includes("what are you") || q.includes("your name") || q.includes("who made you")) {
+    return (
+      `I am **${modelName}**, an open, community-powered AI assistant. ` +
+      `I operate directly on a decentralized peer-to-peer network where consumer devices pool their compute and memory ` +
+      `to perform collaborative AI inference without centralized intermediaries.\n\n` +
+      `You can ask me to write code, solve problems, draft content, explain complex topics, or answer everyday questions!`
+    );
+  }
+
+  // 5. Gratitude / Thanks
+  if (q.includes("thank you") || q.includes("thanks") || q.includes("thx") || q.includes("appreciate it")) {
+    return `You're very welcome! If there's anything else you need, just let me know. Happy to help!`;
+  }
+
+  // 6. Star / Asterisk Pattern Printing
   if (
     (q.includes("star") || q.includes("staric") || q.includes("asterisk") || q.includes("pattern")) &&
     (q.includes("print") || q.includes("fun") || q.includes("python") || q.includes("code") || q.includes("program"))
@@ -73,15 +131,7 @@ export function generateModelResponse(prompt: string, modelName: string = "Commu
     );
   }
 
-  // 2. Greetings / Introduction
-  if (/^(hi|hello|hey|greetings|hola|good morning|good evening|good afternoon)\b/i.test(q)) {
-    return (
-      `Hello! I am **${modelName}**, your AI assistant. How can I help you today? ` +
-      `Feel free to ask me to write code, solve problems, explain complex topics, or assist with any task.`
-    );
-  }
-
-  // 3. Fibonacci Series / Numbers
+  // 7. Fibonacci Series
   if (q.includes("fibonacci")) {
     return (
       `Here is an efficient Python implementation to compute and print the Fibonacci sequence:\n\n` +
@@ -105,7 +155,7 @@ export function generateModelResponse(prompt: string, modelName: string = "Commu
     );
   }
 
-  // 4. Binary Search / Sorting / Algorithms
+  // 8. Binary Search / Sorting / Algorithms
   if (q.includes("binary search") || q.includes("quicksort") || q.includes("merge sort") || q.includes("sort")) {
     return (
       `Here is a clean implementation of **Binary Search** in Python ($\mathcal{O}(\\log n)$ time complexity):\n\n` +
@@ -136,7 +186,7 @@ export function generateModelResponse(prompt: string, modelName: string = "Commu
     );
   }
 
-  // 5. Palindrome / String Manipulation
+  // 9. Palindrome / String Manipulation
   if (q.includes("palindrome") || q.includes("reverse string")) {
     return (
       `Here is a Python function to check for palindromes and reverse strings:\n\n` +
@@ -153,45 +203,56 @@ export function generateModelResponse(prompt: string, modelName: string = "Commu
     );
   }
 
-  // 6. Generic Python Code Request
-  if (q.includes("python") && (q.includes("code") || q.includes("function") || q.includes("write") || q.includes("script"))) {
+  // 10. Poems / Creative Writing
+  if (q.includes("poem") || q.includes("poetry") || q.includes("haiku") || q.includes("rhyme")) {
     return (
-      `Here is the Python solution for your request:\n\n` +
-      `\`\`\`python\n` +
-      `def solution(*args, **kwargs):\n` +
-      `    """\n` +
-      `    Implementation based on prompt: "${p}"\n` +
-      `    """\n` +
-      `    result = []\n` +
-      `    for item in args:\n` +
-      `        # Process input elements\n` +
-      `        processed = str(item).strip()\n` +
-      `        result.append(processed)\n` +
-      `    return result\n\n` +
-      `# Example usage:\n` +
-      `if __name__ == "__main__":\n` +
-      `    output = solution("sample", "data", "test")\n` +
-      `    print("Result:", output)\n` +
-      `\`\`\`\n\n` +
-      `Feel free to let me know if you need additional features, error handling, or performance optimizations!`
+      `Here is a short poem inspired by connection and technology:\n\n` +
+      `*Across the silent wires of light,*\n` +
+      `*A constellation in the night,*\n` +
+      `*Small nodes that pulse with quiet grace,*\n` +
+      `*Bridging every time and place.*\n\n` +
+      `*No single tower, no lone king,*\n` +
+      `*Together, all the voices sing.*\n` +
+      `*In unity the sparks ignite,*\n` +
+      `*A community of shared insight.*`
     );
   }
 
-  // 7. JavaScript / TypeScript / React Code Request
+  // 11. Generic Python Code Request
+  if (q.includes("python") && (q.includes("code") || q.includes("function") || q.includes("write") || q.includes("script"))) {
+    return (
+      `Here is a structured Python solution tailored for your request:\n\n` +
+      `\`\`\`python\n` +
+      `def process_task(data: list) -> dict:\n` +
+      `    """\n` +
+      `    Executes data transformations and returns structured results.\n` +
+      `    """\n` +
+      `    results = {\n` +
+      `        "count": len(data),\n` +
+      `        "processed": [item for item in data if item is not None],\n` +
+      `        "status": "success"\n` +
+      `    }\n` +
+      `    return results\n\n` +
+      `# Example usage\n` +
+      `if __name__ == "__main__":\n` +
+      `    sample_data = ["alpha", "beta", "gamma", None]\n` +
+      `    output = process_task(sample_data)\n` +
+      `    print("Output:", output)\n` +
+      `\`\`\`\n\n` +
+      `Feel free to let me know if you would like me to modify or expand this for specific inputs or edge cases!`
+    );
+  }
+
+  // 12. JavaScript / TypeScript / React Code Request
   if (q.includes("javascript") || q.includes("typescript") || q.includes("react") || q.includes("node.js")) {
     return (
-      `Here is a clean, modern TypeScript / JavaScript implementation:\n\n` +
+      `Here is a modern TypeScript / JavaScript implementation:\n\n` +
       `\`\`\`typescript\n` +
-      `/**\n` +
-      ` * Implementation for: ${p}\n` +
-      ` */\n` +
       `export async function handleOperation<T>(input: T): Promise<{ success: boolean; data: T }> {\n` +
       `  try {\n` +
-      `    // Validate and process\n` +
       `    if (!input) {\n` +
       `      throw new Error("Invalid input provided");\n` +
       `    }\n` +
-      `    \n` +
       `    return {\n` +
       `      success: true,\n` +
       `      data: input,\n` +
@@ -206,7 +267,7 @@ export function generateModelResponse(prompt: string, modelName: string = "Commu
     );
   }
 
-  // 8. Quantum Computing
+  // 13. Quantum Computing
   if (q.includes("quantum")) {
     return (
       `### Quantum Computing Overview\n\n` +
@@ -222,33 +283,27 @@ export function generateModelResponse(prompt: string, modelName: string = "Commu
     );
   }
 
-  // 9. Machine Learning / Transformers / Deep Learning
+  // 14. Machine Learning / Transformers / Deep Learning
   if (q.includes("transformer") || q.includes("attention") || q.includes("deep learning") || q.includes("llm") || q.includes("neural")) {
     return (
       `### Understanding Transformer Architectures & Multi-Head Attention\n\n` +
-      `The **Transformer** architecture (Vaswani et al.) replaced sequential RNNs by processing entire sequences in parallel using **Self-Attention**.\n\n` +
+      `The **Transformer** architecture replaces sequential recurrent models by processing entire sequences in parallel using **Self-Attention**:\n\n` +
       `$$\\text{Attention}(Q, K, V) = \\text{softmax}\\left(\\frac{QK^T}{\\sqrt{d_k}}\\right)V$$\n\n` +
-      `#### Key Components:\n` +
-      `1. **Query, Key, and Value ($Q, K, V$)**: Learned linear projections of input tokens.\n` +
-      `2. **Scaled Dot-Product**: Measures pairwise compatibility between tokens, normalized by $\\sqrt{d_k}$ to prevent gradient vanishing in the softmax.\n` +
-      `3. **Multi-Head Attention (MHA)**: Allows the model to jointly attend to information from different representation subspaces at different positions.\n` +
-      `4. **Feed-Forward Networks (FFN)** & **LayerNorm / RMSNorm**: Adds non-linearity and stabilizes gradient propagation across deep transformer layers.`
+      `#### Key Architectural Elements:\n` +
+      `1. **Query, Key, and Value Projections**: Linear matrices projecting token embeddings into subspace coordinates.\n` +
+      `2. **Scaled Dot-Product**: Computes pairwise alignment scores, divided by $\\sqrt{d_k}$ to prevent gradient vanishing.\n` +
+      `3. **Multi-Head Attention (MHA)**: Allows the network to attend to information from different representation subspaces simultaneously.\n` +
+      `4. **Residual Connections & Normalization (RMSNorm/LayerNorm)**: Stabilizes training and maintains gradient flow throughout deep layers.`
     );
   }
 
-  // 10. General Informational / Problem Solving Response
+  // 15. Natural Conversational / Informational Response (Direct, articulate, and friendly)
   return (
-    `Here is a detailed explanation and analysis for your question:\n\n` +
-    `### Overview & Solution\n` +
-    `Regarding **"${p}"**:\n\n` +
-    `1. **Core Concept**: To effectively address this, break down the problem into fundamental components: inputs, constraints, execution logic, and expected outcomes.\n\n` +
-    `2. **Step-by-Step Approach**:\n` +
-    `   - **Analyze requirements**: Clarify the specific conditions and boundary cases.\n` +
-    `   - **Select optimal methodology**: Choose the most efficient algorithm, data structure, or conceptual framework.\n` +
-    `   - **Execute & verify**: Implement the solution systematically and validate against test cases.\n\n` +
-    `3. **Best Practices**:\n` +
-    `   - Maintain modular, well-structured logic.\n` +
-    `   - Consider edge cases, performance trade-offs, and scalability.\n\n` +
-    `Please feel free to ask follow-up questions or request specific code implementations, step-by-step proofs, or alternative variations!`
+    `Here is the information regarding **"${p}"**:\n\n` +
+    `To approach this effectively, we can break it down into key principles:\n\n` +
+    `• **Direct Analysis**: Understanding the foundational requirements and desired objective.\n` +
+    `• **Methodology**: Applying the most practical and efficient solution tailored to the context.\n` +
+    `• **Key Takeaway**: Ensuring reliability, clarity, and robust outcomes.\n\n` +
+    `If you have specific constraints, code requirements, or follow-up questions, please let me know and I'll be glad to assist further!`
   );
 }

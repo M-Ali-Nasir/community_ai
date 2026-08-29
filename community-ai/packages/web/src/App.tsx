@@ -11,11 +11,12 @@ type Tab = "chat" | "resources" | "contribute" | "network";
 export function App() {
   const [tab, setTab] = useState<Tab>("chat");
   const coordinator = useCoordinator("");
-  const [contributorStatus, setContributorStatus] = useState<ContributorStatus | null>(null);
-
   const contributor = useMemo(
     () => new Contributor("", (status) => setContributorStatus({ ...status })),
     []
+  );
+  const [contributorStatus, setContributorStatus] = useState<ContributorStatus | null>(() =>
+    contributor.getStatus()
   );
 
   useEffect(() => {

@@ -2,79 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type ChatMessage,
   type JobRequest,
-  type PipelinePlan,
-  type TaskView,
 } from "@community-ai/protocol";
 import type { useCoordinator } from "../lib/useCoordinator.js";
 import type { ContributorStatus } from "../lib/contributor.js";
 
 type Coordinator = ReturnType<typeof useCoordinator>;
-
-function PipelineCard({
-  pipeline,
-  tasks,
-  myPeerId,
-}: {
-  pipeline: PipelinePlan;
-  tasks: TaskView[];
-  myPeerId?: string;
-}): JSX.Element {
-  const measured = tasks.find((t) => t.metrics)?.metrics ?? null;
-  const gain = pipeline.pooledMemoryMB / Math.max(pipeline.bestSingleMemoryMB, 1);
-
-  return (
-    <div className="pipeline-card">
-      <div className="pipeline-header">
-        <div className="pipeline-icon">⚡</div>
-        <div>
-          <h3 style={{ margin: 0, fontSize: 15 }}>Distributed Layer Pipeline</h3>
-          <p className="sub" style={{ margin: "2px 0 0", fontSize: 12 }}>
-            {pipeline.reason}
-          </p>
-        </div>
-      </div>
-
-      <div className="pipeline-nodes">
-        {pipeline.members.map((member, i) => {
-          const isMe = member.nodeId === myPeerId;
-          const anonymizedLabel = isMe
-            ? "Your Node (Active)"
-            : i === 0
-            ? "Head Cluster Peer"
-            : `Anonymous Peer #${i + 1}`;
-
-          return (
-            <div className="pipeline-node" key={member.nodeId}>
-              <div className="node-rank">{i === 0 ? "HEAD NODE" : `STAGE ${i}`}</div>
-              <div className="node-name">{anonymizedLabel}</div>
-              <div className="node-meter">
-                <span style={{ width: `${Math.round(member.share * 100)}%` }} />
-              </div>
-              <div className="node-meta">
-                {Math.round(member.share * 100)}% layers ({member.assignedMB} MB)
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="pipeline-metrics">
-        <div className="p-metric">
-          <strong>{(pipeline.pooledMemoryMB / 1024).toFixed(1)} GB</strong>
-          <span>Pooled ({gain.toFixed(1)}× single node)</span>
-        </div>
-        <div className="p-metric">
-          <strong>{pipeline.estimatedHopMs.toFixed(1)} ms</strong>
-          <span>Hop Latency floor</span>
-        </div>
-        <div className="p-metric">
-          <strong>{measured ? `${measured.tokensPerSecond.toFixed(1)} tok/s` : "—"}</strong>
-          <span>Speed (Ceiling: {pipeline.latencyCeilingTokensPerSec.toFixed(1)} tok/s)</span>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function ChatPanel({
   coordinator,
@@ -102,11 +34,11 @@ export function ChatPanel({
     (live.view === null || live.view.status === "running" || live.view.status === "reducing") &&
     live.stage !== "completed";
 
-  const isModelReady =
-    !contributorStatus ||
-    contributorStatus.modelPhase === "ready" ||
-    contributorStatus.modelProgress >= 1.0;
-  const prepProgress = Math.round((contributorStatus?.modelProgress ?? 0) * 100);
+  const isModelReady = Boolean(
+    contributorStatus &&
+    (contributorStatus.modelPhase === "ready" || contributorStatus.modelProgress >= 1.0)
+  );
+  const prepProgress = Math.min(100, Math.max(10, Math.round((contributorStatus?.modelProgress ?? 0.1) * 100)));
 
   const onlineNodes = state.nodes.filter(
     (n) => n.online && n.kind !== "client" && n.governor.capacity > 0
@@ -270,15 +202,6 @@ export function ChatPanel({
           </div>
         ) : null}
 
-        {/* Distributed Pipeline Visualizer Card if active */}
-        {live?.plan?.pipeline && live.plan.pipeline.members.length > 1 ? (
-          <PipelineCard
-            pipeline={live.plan.pipeline}
-            tasks={live.plan.tasks}
-            myPeerId={state.peerId}
-          />
-        ) : null}
-
         <div ref={messagesEndRef} />
       </div>
 
@@ -289,8 +212,8 @@ export function ChatPanel({
           className="chat-input"
           placeholder={
             !isModelReady
-              ? `⏳ Model shard is preparing on your device (${prepProgress}%)... Prompting enabled once ready.`
-              : "Ask the distributed cluster anything (e.g. 'Explain quantum computing in simple terms')..."
+              ? `⏳ System is getting ready (${prepProgress}%)... Prompting enabled once ready.`
+              : "Ask Community AI anything (e.g. 'Tell me a joke', 'Write a Python function')..."
           }
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}

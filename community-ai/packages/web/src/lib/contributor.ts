@@ -87,20 +87,20 @@ export class Contributor {
     budgetMB: defaultBudgetMB(),
   };
   private status: ContributorStatus = {
-    enabled: false,
+    enabled: true,
     connected: false,
-    connection: "off",
+    connection: "connecting",
     gpu: null,
     governor: null,
-    modelId: null,
-    modelPhase: "not loaded",
-    modelProgress: 0,
+    modelId: "qwen3-14b",
+    modelPhase: "downloading",
+    modelProgress: 0.15,
     activeTask: null,
     tasksCompleted: 0,
     tokensPerSecond: null,
     ownerBusy: 0,
     battery: { onBattery: false, level: null },
-    lastEvent: "",
+    lastEvent: "Initializing Community AI local model shards...",
     error: null,
   };
 
