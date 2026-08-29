@@ -125,7 +125,7 @@ pub struct SimulationMetrics {
 
 fn main() {
     println!("=== Community AI: 20-Node Testnet Cluster Simulation ===");
-    let sim = ClusterSimulation::new_random(20, "qwen2.5-7b", 28, 4);
+    let sim = ClusterSimulation::new_random(20, "qwen3-14b", 48, 6);
     let metrics = sim.run_benchmark();
     println!("{}", serde_json::to_string_pretty(&metrics).unwrap());
 }

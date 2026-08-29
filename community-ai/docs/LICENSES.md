@@ -29,7 +29,7 @@ worth the friction when Apache-2.0 alternatives of the same quality exist.
 | SmolLM2 1.7B Instruct | 1.7B | Apache-2.0 | No | Apache-2.0 alternative in the same class |
 | Phi-3.5 Mini Instruct | 3.8B | MIT | No | Strongest small model here |
 | Mistral 7B Instruct v0.3 | 7.25B | Apache-2.0 | No | Ungated Apache-2.0 7B |
-| Qwen2.5 7B Instruct | 7.61B | Apache-2.0 | No | Target once friends with 8 GB+ GPUs join |
+| Qwen3 14B Instruct | 14.7B | Apache-2.0 | No | Flagship default partitioned across mesh nodes |
 
 Both Apache-2.0 and MIT require the licence text and copyright notice to travel
 with redistributed weights. Hugging Face repositories carry these, and pointing

@@ -145,7 +145,7 @@ mod tests {
 
     #[test]
     fn test_shard_id_formatting() {
-        let s = ShardId::new("qwen2.5-7b", 2, 8);
-        assert_eq!(s.canonical_name(), "qwen2.5-7b_shard_002_of_008");
+        let s = ShardId::new("qwen3-14b", 2, 8);
+        assert_eq!(s.canonical_name(), "qwen3-14b_shard_002_of_008");
     }
 }

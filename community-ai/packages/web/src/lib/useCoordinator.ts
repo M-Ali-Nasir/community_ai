@@ -184,8 +184,8 @@ function buildInitialLocalNode(peerId: string): NodeView {
       runtime: {
         engine: isMobile ? "webllm" : "node-llama-cpp",
         ready: true,
-        loadedModels: ["qwen2.5-7b"],
-        supportedModels: ["qwen2.5-7b", "qwen2.5-0.5b"],
+        loadedModels: ["qwen3-14b"],
+        supportedModels: ["qwen3-14b", "qwen2.5-0.5b"],
         rpc: {
           endpoint: `p2p://${peerId}:50051`,
           offeredMemoryMB: Math.round(ramGB * 1024 * 0.5),
@@ -209,7 +209,7 @@ function buildInitialLocalNode(peerId: string): NodeView {
     throughput: isMobile ? 18.5 : 42.0,
     throughputIsMeasured: false,
     modelStatus: {
-      modelId: "qwen2.5-7b",
+      modelId: "qwen3-14b",
       phase: "ready",
       progress: 1.0,
       detail: "Shards loaded and active in P2P mesh",
@@ -240,7 +240,7 @@ export function useCoordinator(_token: string) {
       tokensGenerated: 0,
     },
     policy: "adaptive",
-    modelId: "qwen2.5-7b",
+    modelId: "qwen3-14b",
     jobs: [],
     live: null,
     history: [],
@@ -584,7 +584,7 @@ export function useCoordinator(_token: string) {
       
       let answer = "";
       if (isGreeting) {
-        answer = `Hello! I am **Qwen2.5 7B** running directly on your **Decentralized P2P AI Mesh**.\n\n` +
+        answer = `Hello! I am **Qwen3 14B** running directly on your **Decentralized P2P AI Mesh**.\n\n` +
           `• **Mesh Status**: ${activeNodes.length} active node${activeNodes.length === 1 ? "" : "s"} online in the computing cluster.\n` +
           `• **Connected Devices**: ${activeNodes.map((n) => `${n.label} (${n.profile.platform.os})`).join(", ")}\n` +
           `• **Pooled Memory**: ${(activeNodes.reduce((s, n) => s + n.usableMemoryMB, 0) / 1024).toFixed(1)} GB usable for distributed neural activations.\n\n` +

@@ -137,15 +137,15 @@ mod tests {
 
     #[test]
     fn test_manifest_creation() {
-        let m = ModelManifest::create_default_flagship("qwen2.5-7b", 28, 4);
-        assert_eq!(m.shards.len(), 4);
+        let m = ModelManifest::create_default_flagship("qwen3-14b", 48, 6);
+        assert_eq!(m.shards.len(), 6);
         assert_eq!(m.shards[0].layer_start, 0);
-        assert_eq!(m.shards[0].layer_end, 7);
+        assert_eq!(m.shards[0].layer_end, 8);
     }
 
     #[test]
     fn test_placement_scoring() {
-        let m = ModelManifest::create_default_flagship("qwen2.5-7b", 28, 4);
+        let m = ModelManifest::create_default_flagship("qwen3-14b", 48, 6);
         let mut replicas = HashMap::new();
         replicas.insert(m.shards[0].shard_id.canonical_name(), 5);
         replicas.insert(m.shards[1].shard_id.canonical_name(), 0); // Deficit shard!

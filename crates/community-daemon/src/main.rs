@@ -82,7 +82,7 @@ async fn main() -> anyhow::Result<()> {
             battery_pct: None,
         },
         rpc: None,
-        cached_shards: vec!["qwen2.5-7b_shard_000_of_004".to_string()],
+        cached_shards: vec!["qwen3-14b_shard_000_of_006".to_string()],
     };
 
     let swarm = P2PSwarm::new(identity, profile);
@@ -94,7 +94,7 @@ async fn main() -> anyhow::Result<()> {
         info!("Running in autonomous zero-config P2P mesh mode (LAN mDNS + WAN DHT)");
     }
 
-    let _manifest = ModelManifest::create_default_flagship("qwen2.5-7b", 28, 4);
+    let _manifest = ModelManifest::create_default_flagship("qwen3-14b", 48, 6);
 
     let mut tick_counter = 0;
     loop {

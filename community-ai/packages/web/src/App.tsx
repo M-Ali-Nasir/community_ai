@@ -20,7 +20,7 @@ export function App() {
 
   useEffect(() => {
     void contributor.probe().then(() => {
-      void contributor.start(coordinator.state.modelId || "qwen2.5-7b");
+      void contributor.start(coordinator.state.modelId || "qwen3-14b");
     });
     return () => contributor.stop();
   }, [contributor, coordinator.state.modelId]);

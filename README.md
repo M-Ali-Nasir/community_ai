@@ -261,7 +261,7 @@ cp app/build/outputs/apk/debug/app-debug.apk ../../dist/CommunityAI.apk
 ## 📜 Model Licensing & Policy
 
 This project strictly adheres to **Apache-2.0 and MIT** open-source licensing:
-- **Flagship Default**: `Qwen/Qwen2.5-7B-Instruct` (Apache-2.0)
+- **Flagship Default**: `Qwen/Qwen3-14B-Instruct` (Apache-2.0)
 - **Lightweight / Mobile Models**: `SmolLM2-360M-Instruct` (Apache-2.0), `Qwen2.5-0.5B-Instruct` (Apache-2.0)
 - **Zero-Gated Architecture**: No models with restrictive commercial agreements or mandatory account sign-ins are required.
 

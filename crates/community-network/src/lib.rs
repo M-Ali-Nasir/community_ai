@@ -311,7 +311,7 @@ mod tests {
                 battery_pct: None,
             },
             rpc: None,
-            cached_shards: vec!["qwen2.5-7b_shard_000".to_string()],
+            cached_shards: vec!["qwen3-14b_shard_000".to_string()],
         }
     }
 
