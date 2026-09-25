@@ -41,7 +41,7 @@ if [ "$IS_ROOT" -eq 1 ]; then
     echo "========================================================"
 else
     echo "2. Non-root user detected. You can run the binary directly:"
-    echo "   $BINARY_SRC --name my-worker-$(hostname) --coordinator 127.0.0.1:8080"
+    echo "   $BINARY_SRC --name my-worker-$(hostname)"
     echo ""
     echo "To install as a 24/7 background system service, re-run with sudo:"
     echo "   sudo ./platform/linux/install.sh"

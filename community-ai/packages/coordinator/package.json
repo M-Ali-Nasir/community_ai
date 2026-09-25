@@ -1,5 +1,6 @@
 {
   "name": "@community-ai/coordinator",
+  "description": "LEGACY WebSocket hub. Not required for the production P2P mesh (ADR-0011). Do not start for mesh tests.",
   "version": "1.0.0",
   "private": true,
   "type": "module",

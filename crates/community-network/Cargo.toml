@@ -4,11 +4,16 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[[bin]]
+name = "community-relay"
+path = "src/bin/community-relay.rs"
+
 [dependencies]
+clap = { workspace = true, features = ["derive"] }
 community-core.workspace = true
 community-protocol.workspace = true
 community-security.workspace = true
-community-scheduler.workspace = true
+community-runtime.workspace = true
 tokio = { workspace = true, features = ["full"] }
 serde.workspace = true
 serde_json.workspace = true
@@ -16,3 +21,13 @@ tracing.workspace = true
 thiserror.workspace = true
 futures.workspace = true
 bytes.workspace = true
+async-trait.workspace = true
+quinn.workspace = true
+rustls.workspace = true
+rcgen.workspace = true
+rustls-pki-types.workspace = true
+mdns-sd.workspace = true
+if-addrs.workspace = true
+rand.workspace = true
+hex.workspace = true
+chrono.workspace = true
