@@ -1,5 +1,20 @@
-//! AI Runtime Abstraction and Execution Engine.
-//! Decouples the distributed network from specific inference engines (llama.cpp, Vulkan, Metal, WebGPU).
+//! Full-model inference engines. Production uses llama.cpp (`llama-server`).
+//! `SimulatedAIBackend` exists only under the `sim` feature.
+
+mod engine;
+mod llama;
+
+#[cfg(feature = "sim")]
+mod sim;
+
+pub use engine::{InferCancel, InferenceService};
+pub use llama::{
+    default_gguf_candidates, find_llama_server, first_existing_gguf, quant_from_name,
+    LlamaServerEngine, LlamaServerSpec,
+};
+
+#[cfg(feature = "sim")]
+pub use sim::SimulatedAIBackend;
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -43,85 +58,11 @@ impl Default for SamplingParams {
     }
 }
 
-/// Abstract hardware inference backend.
+/// Layer-split backend (not used for the remote full-model milestone).
 #[async_trait]
 pub trait AIBackend: Send + Sync {
-    /// Load a specific model layer shard into accelerator/system memory.
     async fn load_shard(&mut self, shard_path: &Path) -> Result<()>;
-
-    /// Executes the forward pass for this worker's assigned transformer layers.
     async fn forward_stage(&self, input: TensorActivation) -> Result<TensorActivation>;
-
-    /// Samples the next token from final logits.
     async fn sample_token(&self, logits: TensorActivation, params: &SamplingParams) -> Result<u32>;
-
-    /// Returns currently free VRAM in MB.
     fn available_vram_mb(&self) -> usize;
-}
-
-/// Native Mock/Simulated AI Backend for automated testnets and deterministic validation.
-pub struct SimulatedAIBackend {
-    vram_mb: usize,
-    loaded_shards: Vec<String>,
-}
-
-impl SimulatedAIBackend {
-    pub fn new(vram_mb: usize) -> Self {
-        Self {
-            vram_mb,
-            loaded_shards: Vec::new(),
-        }
-    }
-}
-
-#[async_trait]
-impl AIBackend for SimulatedAIBackend {
-    async fn load_shard(&mut self, shard_path: &Path) -> Result<()> {
-        let name = shard_path
-            .file_name()
-            .and_then(|f| f.to_str())
-            .unwrap_or("unknown")
-            .to_string();
-        self.loaded_shards.push(name);
-        Ok(())
-    }
-
-    async fn forward_stage(&self, input: TensorActivation) -> Result<TensorActivation> {
-        // Compute simple activation transformation: x' = tanh(x) + 0.01
-        let transformed = input.data.iter().map(|v| v.tanh() + 0.01).collect();
-        Ok(TensorActivation::new(input.shape, transformed))
-    }
-
-    async fn sample_token(&self, logits: TensorActivation, _params: &SamplingParams) -> Result<u32> {
-        // Argmax token sampling
-        let (max_idx, _) = logits
-            .data
-            .iter()
-            .enumerate()
-            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-            .unwrap_or((0, &0.0));
-        Ok(max_idx as u32)
-    }
-
-    fn available_vram_mb(&self) -> usize {
-        self.vram_mb
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_simulated_ai_backend() {
-        let mut backend = SimulatedAIBackend::new(4096);
-        backend.load_shard(Path::new("qwen2.5_shard_000.shard")).await.unwrap();
-
-        let input = TensorActivation::new(vec![1, 4], vec![0.5, -0.2, 1.0, 0.0]);
-        let output = backend.forward_stage(input).await.unwrap();
-        assert_eq!(output.data.len(), 4);
-
-        let sampled = backend.sample_token(output, &SamplingParams::default()).await.unwrap();
-        assert!(sampled < 4);
-    }
 }

@@ -219,36 +219,20 @@ export class Contributor {
 
     if (this.engine && entry?.webllmMatch) {
       this.engine.postMessage({ type: "load", catalogId: modelId, match: entry.webllmMatch });
+      this.emit({
+        lastEvent: `Loading ${entry.displayName} via WebLLM (READY only after the worker reports loaded)`,
+      });
+      return;
     }
 
-    // Fast shard initialization pipeline so devices become ready in 1.5s
-    setTimeout(() => {
-      this.emit({
-        modelPhase: "downloading",
-        modelProgress: 0.45,
-        modelId,
-        lastEvent: `Downloading ${entry?.displayName || "Community AI"} shard... 45%`,
-      });
-    }, 400);
-
-    setTimeout(() => {
-      this.emit({
-        modelPhase: "loading",
-        modelProgress: 0.85,
-        modelId,
-        lastEvent: `Compiling tensor kernels & allocating KV cache... 85%`,
-      });
-    }, 900);
-
-    setTimeout(() => {
-      this.loadedModels = [modelId];
-      this.emit({
-        modelPhase: "ready",
-        modelProgress: 1.0,
-        modelId,
-        lastEvent: `${entry?.displayName || "Community AI"} Shard 1/6 (Layers 00..08) Resident & Ready`,
-      });
-    }, 1500);
+    this.loadedModels = [];
+    this.emit({
+      modelPhase: "error",
+      modelProgress: 0,
+      modelId,
+      lastEvent:
+        "Model READY is disabled until a real runtime loads weights. Timer-based READY was removed.",
+    });
   }
 
   private onEngineMessage(message: WorkerOut): void {

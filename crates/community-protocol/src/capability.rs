@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use community_core::NodeId;
+use crate::task::ModelAdvertisement;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -98,4 +99,7 @@ pub struct CapabilityProfile {
     pub user_state: UserState,
     pub rpc: Option<RpcProfile>,
     pub cached_shards: Vec<String>,
+    /// Models this peer can actually serve. Empty unless `state == ready`.
+    #[serde(default)]
+    pub models: Vec<ModelAdvertisement>,
 }

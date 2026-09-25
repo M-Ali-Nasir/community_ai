@@ -13,14 +13,13 @@ import {
   safeJsonParse,
 } from "@community-ai/protocol";
 import { probeGpu } from "./capability.js";
-import { generateModelResponse } from "./inferenceEngine.js";
 
 export interface LiveJob {
   jobId: string;
   request: JobRequest;
   plan: ClusterPlan | null;
   statusText?: string;
-  stage?: "searching" | "planning" | "streaming" | "completed";
+  stage?: "searching" | "planning" | "streaming" | "completed" | "failed";
   /** Streamed text per task, so each node's output can be shown as it arrives. */
   streams: Record<string, { nodeId: string; text: string }>;
   view: JobView | null;
@@ -566,115 +565,16 @@ export function useCoordinator(_token: string) {
         } catch {}
       }
 
-      // Staged status progression & streaming generation
-      const t1 = window.setTimeout(() => {
-        setState((prev) => {
-          if (!prev.live || prev.live.jobId !== jobId) return prev;
-          return {
-            ...prev,
-            live: {
-              ...prev.live,
-              stage: "planning",
-              statusText: isMultiNode
-                ? `⚡ Partitioning layers & pooled ${((activeNodes.reduce((s, n) => s + n.usableMemoryMB, 0)) / 1024).toFixed(1)} GB VRAM across ${activeNodes.length} devices...`
-                : "⚡ Allocating neural tensors and initializing compute pipeline...",
-            },
-          };
-        });
-      }, 700);
-      streamTimersRef.current.push(t1);
-
-      const lastUserMsg = request.messages[request.messages.length - 1]?.content ?? "Hello";
-      const answer = generateModelResponse(lastUserMsg, "Community AI");
-
-      const words = answer.split(" ");
-      let currentIdx = 0;
-      let accumulated = "";
-
-      const t2 = window.setTimeout(() => {
-        setState((prev) => {
-          if (!prev.live || prev.live.jobId !== jobId) return prev;
-          return {
-            ...prev,
-            live: {
-              ...prev.live,
-              stage: "streaming",
-              statusText: "🤖 Generating tokens across cluster...",
-            },
-          };
-        });
-
-        const streamInterval = window.setInterval(() => {
-          if (currentIdx < words.length) {
-            accumulated += (currentIdx > 0 ? " " : "") + words[currentIdx];
-            currentIdx++;
-
-            setState((prev) => {
-              if (!prev.live || prev.live.jobId !== jobId) return prev;
-              return {
-                ...prev,
-                live: {
-                  ...prev.live,
-                  streams: {
-                    [tasksList[0].taskId]: {
-                      nodeId: tasksList[0].nodeId ?? localPeerId,
-                      text: accumulated,
-                    },
-                  },
-                },
-              };
-            });
-          } else {
-            clearInterval(streamInterval);
-            const completedTasks = tasksList.map((t, idx) => ({
-              ...t,
-              status: "completed" as const,
-              output: idx === 0 ? accumulated : "",
-              metrics: {
-                ttftMs: 110 + idx * 25,
-                totalMs: 1400,
-                tokens: words.length,
-                tokensPerSecond: Math.max(16, Math.round((words.length / 1.4) * 10) / 10),
-                queueMs: 12,
-              },
-            }));
-
-            const completedJob: JobView = {
-              jobId,
-              status: "completed",
-              output: accumulated,
-              error: null,
-              request,
-              plan: {
-                ...clusterPlan,
-                tasks: completedTasks,
-              },
-              startedAtMs: Date.now() - 1400,
-              finishedAtMs: Date.now(),
-              wallClockMs: 1400,
-              totalTokens: words.length,
-            };
-
-            setState((prev) => ({
-              ...prev,
-              live: {
-                ...prev.live!,
-                stage: "completed",
-                statusText: "✓ Completed",
-                view: completedJob,
-              },
-              history: [prev.live!, ...prev.history].slice(0, 20),
-              stats: {
-                ...prev.stats!,
-                jobsCompleted: prev.stats!.jobsCompleted + 1,
-                tokensGenerated: prev.stats!.tokensGenerated + words.length,
-              },
-            }));
-          }
-        }, 35);
-      }, 1400);
-      streamTimersRef.current.push(t2);
-
+      setState((prev) => ({
+        ...prev,
+        live: {
+          ...initialLive,
+          stage: "failed",
+          statusText: "Template chat is disabled",
+          error:
+            "PWA template inference is disabled. Real tokens come from native QUIC peers running llama.cpp — not this browser coordinator.",
+        },
+      }));
       return jobId;
     },
     [state.nodes, state.policy, localPeerId]

@@ -73,6 +73,7 @@ impl ClusterSimulation {
                     build_tag: "b10632".into(),
                 }),
                 cached_shards: vec![],
+                models: vec![],
             });
         }
 

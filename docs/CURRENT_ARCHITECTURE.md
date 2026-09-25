@@ -1,5 +1,7 @@
 # Current Architecture Audit & Technical Assessment
 
+**Status:** Historical audit (August 2026). Superseded as the target by `docs/architecture/ARCHITECTURE.md` and ADR-0011 (no central node). The TypeScript coordinator described here is **legacy**.
+
 **Document Version:** 1.0.0  
 **Date:** August 2026  
 **Auditor:** Principal Distributed Systems & AI Infrastructure Architect  
@@ -86,5 +88,5 @@ The repository currently contains two distinct generations of prototypes develop
 
 ### 4.2 Components to Replace / Redesign
 - **Node.js Worker Runtime:** Replace with a unified, native **Rust Core Engine** compiled to native binaries and C/FFI libraries.
-- **Centralized WebSocket Coordinator:** Evolve toward a hybrid bootstrap/DHT discovery model with libp2p and direct QUIC streams.
+- **Centralized WebSocket Coordinator:** Legacy hub. Production path is a decentralized QUIC mesh (ADR-0011). Optional NAT relays, if added, forward encrypted traffic only and are not membership authorities.
 - **Full-GGUF Head Node Streaming:** Replace with discrete **Model Shard Packages** where nodes only store, verify, and execute their assigned layer shards.
