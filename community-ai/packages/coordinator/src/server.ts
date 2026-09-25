@@ -1,3 +1,4 @@
+/** LEGACY: TypeScript WebSocket hub. Not part of the production P2P mesh (ADR-0011). Do not start for mesh tests. */
 import { createServer as createHttpServer, type Server as HttpServer } from "node:http";
 import { createServer as createHttpsServer, type Server as HttpsServer } from "node:https";
 import { existsSync } from "node:fs";

@@ -2,7 +2,7 @@
 
 **Document Version:** 2.0.0  
 **Date:** August 2026  
-**Status:** Approved Architectural Target  
+**Status:** Historical north star (August 2026). **Current locked architecture:** `docs/architecture/ARCHITECTURE.md` + ADR-0011. Community AI is a **decentralized P2P mesh**; no central device is required.  
 
 ---
 

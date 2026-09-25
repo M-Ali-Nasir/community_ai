@@ -9,6 +9,6 @@ The core architecture is organized as a Cargo workspace with clean boundary sepa
 - `community-model-manager`: GGUF layer sharder, LRU disk cache, and dynamic placement scoring.
 - `community-runtime`: Hardware-agnostic `AIBackend` abstraction for headless layer execution.
 - `community-scheduler`: Workload analyzer, pipeline cluster planner, and fault handler.
-- `community-network`: Peer registry, heartbeat tracking, and wire framing.
+- `community-network`: Production QUIC mesh (`MeshSwarm`), mDNS, gossip. `InMemorySwarm` is tests-only.
 - `community-daemon`: Cross-platform background worker service.
 - `community-simulator`: Discrete event cluster simulator for 10–100k nodes.

@@ -30,15 +30,107 @@ impl NodeIdentity {
         hex::encode(self.verifying_key.as_bytes())
     }
 
+    /// Raw 32-byte Ed25519 public key (identity; never an IP).
+    pub fn public_key_bytes(&self) -> [u8; 32] {
+        *self.verifying_key.as_bytes()
+    }
+
     /// Raw verifying key.
     pub fn verifying_key(&self) -> VerifyingKey {
         self.verifying_key
     }
 
-    /// Unique deterministic NodeId derived from Ed25519 public key.
+    /// Unique deterministic NodeId derived from the full Ed25519 public key.
     pub fn node_id(&self) -> community_core::NodeId {
-        let hex = self.public_key_hex();
-        community_core::NodeId::from_string(format!("node-{}", &hex[..12]))
+        Self::node_id_from_pubkey_hex(&self.public_key_hex())
+            .expect("generated keys always produce a valid node id")
+    }
+
+    /// NodeId is `node-{64 hex chars of public key}` — never IP or a random runtime id.
+    pub fn node_id_from_pubkey_hex(pubkey_hex: &str) -> Result<community_core::NodeId> {
+        let bytes = hex::decode(pubkey_hex)
+            .map_err(|e| CommunityError::Security(format!("invalid pubkey hex: {e}")))?;
+        if bytes.len() != 32 {
+            return Err(CommunityError::Security(
+                "public key must be 32 bytes (64 hex chars)".into(),
+            ));
+        }
+        Ok(community_core::NodeId::from_string(format!(
+            "node-{pubkey_hex}"
+        )))
+    }
+
+    /// Raw 32-byte Ed25519 seed for persistence.
+    pub fn seed_bytes(&self) -> [u8; 32] {
+        self.signing_key.to_bytes()
+    }
+
+    /// Restore identity from a 32-byte seed.
+    pub fn from_seed_bytes(seed: [u8; 32]) -> Self {
+        let signing_key = SigningKey::from_bytes(&seed);
+        let verifying_key = signing_key.verifying_key();
+        Self {
+            signing_key,
+            verifying_key,
+        }
+    }
+
+    /// Load a seed from `path`, or generate and persist a new one.
+    /// Unix: file mode 0600.
+    pub fn load_or_generate(path: &std::path::Path) -> Result<Self> {
+        if path.exists() {
+            Self::load(path)
+        } else {
+            let id = Self::generate();
+            id.save(path)?;
+            Ok(id)
+        }
+    }
+
+    pub fn load(path: &std::path::Path) -> Result<Self> {
+        let text = std::fs::read_to_string(path)
+            .map_err(|e| CommunityError::Config(format!("read identity {}: {e}", path.display())))?;
+        let hex_str = text
+            .lines()
+            .find(|l| !l.trim().is_empty() && !l.trim().starts_with('#'))
+            .unwrap_or("")
+            .trim();
+        let bytes = hex::decode(hex_str)
+            .map_err(|e| CommunityError::Security(format!("identity file hex: {e}")))?;
+        if bytes.len() != 32 {
+            return Err(CommunityError::Security(format!(
+                "identity file must contain 32 bytes, got {}",
+                bytes.len()
+            )));
+        }
+        let mut seed = [0u8; 32];
+        seed.copy_from_slice(&bytes);
+        Ok(Self::from_seed_bytes(seed))
+    }
+
+    pub fn save(&self, path: &std::path::Path) -> Result<()> {
+        if let Some(dir) = path.parent() {
+            std::fs::create_dir_all(dir).map_err(|e| {
+                CommunityError::Config(format!("create identity dir {}: {e}", dir.display()))
+            })?;
+        }
+        let body = format!(
+            "# community-ai ed25519 seed — do not share\n{}\n",
+            hex::encode(self.seed_bytes())
+        );
+        std::fs::write(path, body)
+            .map_err(|e| CommunityError::Config(format!("write identity {}: {e}", path.display())))?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = std::fs::metadata(path)
+                .map_err(|e| CommunityError::Config(e.to_string()))?
+                .permissions();
+            perms.set_mode(0o600);
+            std::fs::set_permissions(path, perms)
+                .map_err(|e| CommunityError::Config(e.to_string()))?;
+        }
+        Ok(())
     }
 
     /// Sign arbitrary payload bytes.
@@ -90,6 +182,26 @@ impl SignedEnvelope {
     }
 }
 
+/// BLAKE3 of a file streamed from disk (GGUF weights).
+pub fn hash_file_blake3(path: &std::path::Path) -> Result<String> {
+    use std::io::Read;
+    let mut file = std::fs::File::open(path).map_err(|e| {
+        CommunityError::Config(format!("open {} for hash: {e}", path.display()))
+    })?;
+    let mut hasher = blake3::Hasher::new();
+    let mut buf = vec![0u8; 1024 * 1024];
+    loop {
+        let n = file
+            .read(&mut buf)
+            .map_err(|e| CommunityError::Config(format!("read {}: {e}", path.display())))?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+    }
+    Ok(hasher.finalize().to_hex().to_string())
+}
+
 /// Computes BLAKE3 cryptographic hash of a model shard or byte payload.
 pub fn compute_blake3_hash(data: &[u8]) -> String {
     let hash = blake3::hash(data);
@@ -129,5 +241,38 @@ mod tests {
         let hash = compute_blake3_hash(data);
         assert!(verify_blake3_hash(data, &hash).is_ok());
         assert!(verify_blake3_hash(b"corrupted-data", &hash).is_err());
+    }
+
+    #[test]
+    fn test_identity_persist_roundtrip() {
+        let dir = std::env::temp_dir().join(format!("cai-id-{}", uuid_stub()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("identity.key");
+        let a = NodeIdentity::generate();
+        a.save(&path).unwrap();
+        let b = NodeIdentity::load(&path).unwrap();
+        assert_eq!(a.public_key_hex(), b.public_key_hex());
+        assert_eq!(a.node_id(), b.node_id());
+        assert!(a.node_id().as_str().starts_with("node-"));
+        assert_eq!(a.node_id().as_str().len(), 5 + 64);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_load_or_generate_stable() {
+        let dir = std::env::temp_dir().join(format!("cai-id2-{}", uuid_stub()));
+        let path = dir.join("identity.key");
+        let a = NodeIdentity::load_or_generate(&path).unwrap();
+        let b = NodeIdentity::load_or_generate(&path).unwrap();
+        assert_eq!(a.public_key_hex(), b.public_key_hex());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    fn uuid_stub() -> u64 {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() as u64
     }
 }

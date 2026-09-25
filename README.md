@@ -14,6 +14,8 @@
 
 *Turn everyday consumer devices—smartphones, laptops, gaming PCs, and workstations—into a united, privacy-preserving distributed supercomputer for Large Language Model inference.*
 
+> **Engineering status (2026-09-25):** This repository is a **prototype**. Desktop/Android packages currently wrap a browser/WebView UI; chat can use template responses; the marketed WebRTC P2P mesh is **not** the production network path yet. Authoritative status: [MISSION_CONTROL.md](MISSION_CONTROL.md) → [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) · [docs/IMPLEMENTATION_MATRIX.md](docs/IMPLEMENTATION_MATRIX.md).
+
 ---
 
 </div>

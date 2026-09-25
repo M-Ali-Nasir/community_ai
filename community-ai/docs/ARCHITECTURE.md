@@ -1,4 +1,10 @@
-# Architecture
+# Architecture (LEGACY TypeScript hub)
+
+> **This document describes the old coordinator/worker prototype.**
+> It is **not** the production architecture.
+>
+> Production mesh: `docs/architecture/ARCHITECTURE.md` and ADR-0011.
+> **No central coordinator is required.** Do not start this stack for mesh tests.
 
 The thesis being tested: **can a changing collection of ordinary personal
 computers behave as one useful AI machine?**
