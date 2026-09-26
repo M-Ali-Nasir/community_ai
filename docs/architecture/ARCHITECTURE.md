@@ -15,6 +15,8 @@
 
 If a proposed implementation violates this invariant: **STOP**, update an ADR, do not ship a workaround.
 
+Persistence is **peer-local** (`docs/architecture/STORAGE.md`). There is no central chat history or storage node.
+
 The architecture is:
 
 **Decentralized / peer-to-peer mesh, with optional infrastructure only where technically necessary for connectivity (NAT), never for authority.**
