@@ -150,7 +150,9 @@ pub fn validate_inference_result(text: &str, proof: &InferenceProof) -> Result<(
         )));
     }
     if proof.model_hash_hex.len() < 32 {
-        return Err(CommunityError::Execution("missing model hash in inference proof".into()));
+        return Err(CommunityError::Execution(
+            "missing model hash in inference proof".into(),
+        ));
     }
     if text.trim().is_empty() {
         return Err(CommunityError::Execution("empty model output".into()));

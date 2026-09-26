@@ -17,9 +17,9 @@ pub use llama::{
 pub use sim::SimulatedAIBackend;
 
 use async_trait::async_trait;
+use community_core::Result;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-use community_core::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TensorActivation {

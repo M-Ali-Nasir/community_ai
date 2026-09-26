@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use community_core::{CommunityError, Result};
-use rustls::pki_types::{CertificateDer, PrivatePkcs8KeyDer, PrivateKeyDer};
+use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 
 pub fn install_crypto_provider() {
     let _ = rustls::crypto::ring::default_provider().install_default();
@@ -26,9 +26,8 @@ pub fn make_server_config() -> Result<quinn::ServerConfig> {
     let certified = rcgen::generate_simple_self_signed(vec!["peer.community-ai".into()])
         .map_err(|e| CommunityError::Network(format!("rcgen: {e}")))?;
     let cert_der = CertificateDer::from(certified.cert.der().to_vec());
-    let key_der = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(
-        certified.key_pair.serialize_der(),
-    ));
+    let key_der =
+        PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(certified.key_pair.serialize_der()));
 
     let mut server_crypto = rustls::ServerConfig::builder()
         .with_no_client_auth()

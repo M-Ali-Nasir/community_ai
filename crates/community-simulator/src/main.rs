@@ -1,11 +1,11 @@
 //! Large-scale Discrete Event Cluster Simulator for Community AI.
 //! Simulates 10 to 100,000 heterogeneous consumer nodes, latency variations, and dynamic node dropouts.
 
-use rand::Rng;
 use community_core::NodeId;
 use community_model_manager::{ModelManifest, ShardPlacementEngine};
 use community_protocol::*;
 use community_scheduler::Scheduler;
+use rand::Rng;
 use std::collections::HashMap;
 
 pub struct ClusterSimulation {
@@ -22,9 +22,9 @@ impl ClusterSimulation {
             let mem_mb = if rng.gen_bool(0.2) {
                 16384 // 20% high-end GPUs
             } else if rng.gen_bool(0.5) {
-                8192  // 50% mid-tier
+                8192 // 50% mid-tier
             } else {
-                3072  // 30% low-end/CPU
+                3072 // 30% low-end/CPU
             };
 
             let latency = rng.gen_range(5.0..120.0);
@@ -74,6 +74,8 @@ impl ClusterSimulation {
                 }),
                 cached_shards: vec![],
                 models: vec![],
+                compute_sharing_enabled: true,
+                supported_shard_ranges: vec![],
             });
         }
 
@@ -99,7 +101,9 @@ impl ClusterSimulation {
                 node.memory.available_mb,
                 node.network.latency_ms,
             ) {
-                *replica_counts.entry(best_shard.shard_id.canonical_name()).or_insert(0) += 1;
+                *replica_counts
+                    .entry(best_shard.shard_id.canonical_name())
+                    .or_insert(0) += 1;
             }
         }
 

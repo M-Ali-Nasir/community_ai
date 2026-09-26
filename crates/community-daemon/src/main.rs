@@ -100,7 +100,9 @@ fn default_identity_path() -> PathBuf {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
+        )
         .with(tracing_subscriber::fmt::layer())
         .init();
 
@@ -161,6 +163,8 @@ async fn main() -> anyhow::Result<()> {
         rpc: None,
         cached_shards: vec![],
         models: vec![],
+        compute_sharing_enabled: true,
+        supported_shard_ranges: vec![],
     };
 
     let bind: SocketAddr = format!("{}:{}", args.bind, args.port).parse()?;
@@ -176,7 +180,8 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let load_started = Instant::now();
-    let inference: Option<std::sync::Arc<dyn InferenceService>> = if let Some(model_path) = args.model.clone()
+    let inference: Option<std::sync::Arc<dyn InferenceService>> = if let Some(model_path) =
+        args.model.clone()
     {
         let Some((bin, dir)) = community_runtime::find_llama_server() else {
             anyhow::bail!("--model set but llama-server not found under ~/.community-ai/llama");
@@ -216,7 +221,10 @@ async fn main() -> anyhow::Result<()> {
         "advertised endpoints (untrusted until remote handshake): {:?}",
         swarm.advertised_endpoints().await
     );
-    info!("mDNS LAN optimization {}", if args.no_mdns { "off" } else { "on" });
+    info!(
+        "mDNS LAN optimization {}",
+        if args.no_mdns { "off" } else { "on" }
+    );
 
     let mut connect_ms = 0u64;
     for p in &args.peer {
@@ -341,7 +349,10 @@ async fn run_originator(
         out.time_to_first_token_ms.unwrap_or(0)
     );
     println!("total_generation_ms={}", out.total_ms);
-    println!("tokens={}", out.tokens.len().max(out.proof.token_count as usize));
+    println!(
+        "tokens={}",
+        out.tokens.len().max(out.proof.token_count as usize)
+    );
     println!("tokens_per_sec={:.2}", out.tokens_per_sec);
     println!("bytes_approx={}", out.bytes_approx);
     println!("rtt_ms={}", out.rtt_ms.unwrap_or(-1.0));

@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
-use community_core::NodeId;
 use crate::task::ModelAdvertisement;
+use community_core::NodeId;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -102,4 +102,61 @@ pub struct CapabilityProfile {
     /// Models this peer can actually serve. Empty unless `state == ready`.
     #[serde(default)]
     pub models: Vec<ModelAdvertisement>,
+    /// Whether this peer currently accepts *new* compute assignments.
+    /// Missing on old peers → treated as true (they did not have a pause control).
+    #[serde(default = "default_compute_sharing_enabled")]
+    pub compute_sharing_enabled: bool,
+    /// Extensibility for future shard/layer ranges. Empty means unspecified.
+    #[serde(default)]
+    pub supported_shard_ranges: Vec<String>,
+}
+
+fn default_compute_sharing_enabled() -> bool {
+    true
+}
+
+/// Local opt-in compute contribution. Default is PAUSED (must be explicit).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct ResourceSharingConfig {
+    pub enabled: bool,
+    pub cpu_limit_percent: u32,
+    pub memory_limit_mb: u64,
+    pub gpu_enabled: bool,
+    pub gpu_limit_percent: Option<u32>,
+    pub idle_only: bool,
+}
+
+impl Default for ResourceSharingConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            cpu_limit_percent: 50,
+            memory_limit_mb: 2048,
+            gpu_enabled: false,
+            gpu_limit_percent: None,
+            idle_only: true,
+        }
+    }
+}
+
+impl ResourceSharingConfig {
+    pub fn state_label(&self) -> &'static str {
+        if self.enabled {
+            "ACTIVE"
+        } else {
+            "PAUSED"
+        }
+    }
+
+    pub fn clamp(mut self) -> Self {
+        self.cpu_limit_percent = self.cpu_limit_percent.min(100);
+        if let Some(g) = self.gpu_limit_percent {
+            self.gpu_limit_percent = Some(g.min(100));
+        }
+        if !self.gpu_enabled {
+            self.gpu_limit_percent = None;
+        }
+        self
+    }
 }

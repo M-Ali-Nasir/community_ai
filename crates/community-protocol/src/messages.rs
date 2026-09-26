@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
-use community_core::{JobId, NodeId, TaskId};
-use community_security::SignedEnvelope;
 use crate::capability::CapabilityProfile;
 use crate::workload::{JobRequest, PipelinePlan, TaskSpec};
+use community_core::{JobId, NodeId, TaskId};
+use community_security::SignedEnvelope;
+use serde::{Deserialize, Serialize};
 
 /// P2P Shard Chunk descriptor for resumable, content-addressed model layer transfers.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,9 +38,7 @@ mod base64_serde {
         let s = String::deserialize(deserializer)?;
         (0..s.len())
             .step_by(2)
-            .map(|i| {
-                u8::from_str_radix(&s[i..i + 2], 16).map_err(serde::de::Error::custom)
-            })
+            .map(|i| u8::from_str_radix(&s[i..i + 2], 16).map_err(serde::de::Error::custom))
             .collect()
     }
 }

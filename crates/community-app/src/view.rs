@@ -2,7 +2,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use community_network::{ConnectionReport, EvidenceClass, InferenceOutcome, PeerSnapshot, PeerState};
+use community_network::{
+    ConnectionReport, EvidenceClass, InferenceOutcome, PeerSnapshot, PeerState,
+};
 use community_protocol::{EndpointKind, ModelAdvertisement, ModelReadyState, NetEndpoint};
 
 #[derive(Debug, Clone, Serialize)]
@@ -35,6 +37,7 @@ pub struct PeerView {
     pub endpoints: Vec<EndpointView>,
     pub label: Option<String>,
     pub os: Option<String>,
+    pub compute_sharing: Option<String>,
     pub models: Vec<ModelView>,
 }
 
@@ -122,6 +125,13 @@ impl From<&PeerSnapshot> for PeerView {
             endpoints: p.endpoints.iter().map(EndpointView::from).collect(),
             label: p.profile.as_ref().map(|x| x.label.clone()),
             os: p.profile.as_ref().map(|x| x.os.clone()),
+            compute_sharing: p.profile.as_ref().map(|x| {
+                if x.compute_sharing_enabled {
+                    "ACTIVE".into()
+                } else {
+                    "PAUSED".into()
+                }
+            }),
             models,
         }
     }
@@ -197,6 +207,7 @@ pub struct ChatResultView {
     pub model_id: String,
     pub attempts: Vec<TaskAttemptView>,
     pub engine: String,
+    pub conversation_id: String,
 }
 
 impl ChatResultView {
@@ -223,6 +234,7 @@ impl ChatResultView {
             model_id: model_id.into(),
             attempts,
             engine: o.proof.engine.clone(),
+            conversation_id: String::new(),
         }
     }
 }
@@ -245,6 +257,16 @@ pub struct SessionView {
     pub local_peer_id: Option<String>,
     pub model_id: String,
     pub wan_status: String,
+    pub active_conversation_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ResourceView {
+    pub state: String,
+    pub sharing: community_protocol::ResourceSharingConfig,
+    pub hardware: community_governor::HardwareSnapshot,
+    /// Wallet/credits are not part of this milestone.
+    pub wallet_status: String,
 }
 
 /// Project-level WAN claim. Never set to PHYSICAL WAN VERIFIED from automation.

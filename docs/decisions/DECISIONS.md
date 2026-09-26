@@ -168,7 +168,7 @@ WAN-first addressing, STUN, gossip endpoints, optional forward-only relay, ident
 - Each peer runs embedded SQLite (`community-storage`) plus a BLAKE3 object directory under the platform data dir.
 - Chat/history is **private by default** and is not auto-replicated.
 - Shared/public data uses signed append-only events (Ed25519 identity already in `community-security`). Event metadata is in the signed bytes.
-- Future wallet/training events reuse the log; they are **not** implemented here.
+- Future wallet/training events reuse the log; they are **not** implemented here. Resource sharing emits `ResourceSharingEnabled` / `Paused` / `ResourceCapabilityUpdated` only.
 - Replication over QUIC is deferred; do not add HTTP/WebSocket storage.
 
 **Why:** Matches ADR-0011 (no central authority). WAL SQLite is local, not a server.

@@ -147,7 +147,8 @@ impl Storage {
                 archived: row.get::<_, i64>(5)? != 0,
             })
         })?;
-        rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Into::into)
+        rows.collect::<rusqlite::Result<Vec<_>>>()
+            .map_err(Into::into)
     }
 
     pub fn get_conversation(&self, conversation_id: &str) -> Result<Option<ConversationRecord>> {
@@ -242,8 +243,13 @@ impl Storage {
         } else {
             None
         };
-        let (stored_content, object_hash) =
-            maybe_store_large_text(conn, &self.layout, &self.data_key, content, Visibility::Private)?;
+        let (stored_content, object_hash) = maybe_store_large_text(
+            conn,
+            &self.layout,
+            &self.data_key,
+            content,
+            Visibility::Private,
+        )?;
         let rec = MessageRecord {
             message_id: new_id("msg"),
             conversation_id: conversation_id.into(),
@@ -411,7 +417,8 @@ impl Storage {
              FROM tasks ORDER BY created_at DESC",
         )?;
         let rows = stmt.query_map([], task_from_row)?;
-        rows.collect::<rusqlite::Result<Vec<_>>>().map_err(Into::into)
+        rows.collect::<rusqlite::Result<Vec<_>>>()
+            .map_err(Into::into)
     }
 
     pub fn record_generation(&self, rec: &GenerationRecord) -> Result<()> {
@@ -484,7 +491,12 @@ impl Storage {
         .map_err(Into::into)
     }
 
-    pub fn put_object(&self, bytes: &[u8], content_type: &str, visibility: Visibility) -> Result<String> {
+    pub fn put_object(
+        &self,
+        bytes: &[u8],
+        content_type: &str,
+        visibility: Visibility,
+    ) -> Result<String> {
         let conn = self.conn.lock().expect("storage mutex");
         let hash = objects::put_object(
             &conn,
@@ -564,6 +576,39 @@ impl Storage {
         events::list_all_events(&conn)
     }
 
+    pub fn set_conversation_title(&self, conversation_id: &str, title: &str) -> Result<()> {
+        let conn = self.conn.lock().expect("storage mutex");
+        let n = conn.execute(
+            "UPDATE conversations SET title = ?1, updated_at = ?2 WHERE conversation_id = ?3",
+            params![title, unix_ms(), conversation_id],
+        )?;
+        if n == 0 {
+            return Err(StorageError::NotFound(conversation_id.into()));
+        }
+        Ok(())
+    }
+
+    pub fn get_setting(&self, key: &str) -> Result<Option<String>> {
+        let conn = self.conn.lock().expect("storage mutex");
+        conn.query_row(
+            "SELECT value FROM peer_settings WHERE key = ?1",
+            params![key],
+            |r| r.get(0),
+        )
+        .optional()
+        .map_err(Into::into)
+    }
+
+    pub fn put_setting(&self, key: &str, value: &str) -> Result<()> {
+        let conn = self.conn.lock().expect("storage mutex");
+        conn.execute(
+            "INSERT INTO peer_settings (key, value, updated_at) VALUES (?1, ?2, ?3)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+            params![key, value, unix_ms()],
+        )?;
+        Ok(())
+    }
+
     /// Test helper: begin a write then roll it back.
     pub fn insert_conversation_then_rollback(&self, title: &str) -> Result<()> {
         let mut conn = self.conn.lock().expect("storage mutex");
@@ -582,6 +627,14 @@ fn migrate(conn: &Connection) -> Result<()> {
     let v = current_version(conn)?;
     if v == 0 {
         conn.execute_batch(schema::MIGRATION_V1)?;
+        conn.execute(
+            "INSERT INTO schema_migrations (version, applied_at) VALUES (?1, ?2)",
+            params![1, unix_ms()],
+        )?;
+    }
+    let v = current_version(conn)?;
+    if v < 2 {
+        conn.execute_batch(schema::MIGRATION_V2)?;
         conn.execute(
             "INSERT INTO schema_migrations (version, applied_at) VALUES (?1, ?2)",
             params![schema::CURRENT_VERSION, unix_ms()],
@@ -647,7 +700,7 @@ mod tests {
     #[test]
     fn init_wal_and_schema() {
         let (_d, st) = tmp_store();
-        assert_eq!(st.schema_version().unwrap(), 1);
+        assert_eq!(st.schema_version().unwrap(), 2);
         let mode = st.journal_mode().unwrap().to_lowercase();
         assert_eq!(mode, "wal");
     }
@@ -747,8 +800,12 @@ mod tests {
     #[test]
     fn object_put_get_dedup_and_corruption() {
         let (_d, st) = tmp_store();
-        let h1 = st.put_public_object(b"abc", "application/octet-stream").unwrap();
-        let h2 = st.put_public_object(b"abc", "application/octet-stream").unwrap();
+        let h1 = st
+            .put_public_object(b"abc", "application/octet-stream")
+            .unwrap();
+        let h2 = st
+            .put_public_object(b"abc", "application/octet-stream")
+            .unwrap();
         assert_eq!(h1, h2);
         assert_eq!(st.object_meta(&h1).unwrap().unwrap().reference_count, 2);
         assert_eq!(st.get_object(&h1).unwrap(), b"abc");
@@ -791,7 +848,10 @@ mod tests {
         let (_d, st) = tmp_store();
         let h = st.put_public_object(b"gone", "text/plain").unwrap();
         st.tombstone_object(&h).unwrap();
-        assert!(matches!(st.get_object(&h), Err(StorageError::Tombstoned(_))));
+        assert!(matches!(
+            st.get_object(&h),
+            Err(StorageError::Tombstoned(_))
+        ));
     }
 
     #[test]
@@ -860,7 +920,10 @@ mod tests {
             sb.ingest_remote_event(&conv_ev),
             Err(StorageError::Policy(_))
         ));
-        assert!(sb.get_conversation(&private.conversation_id).unwrap().is_none());
+        assert!(sb
+            .get_conversation(&private.conversation_id)
+            .unwrap()
+            .is_none());
         assert!(sb.export_replicable_events().unwrap().is_empty());
 
         let mut forged = sa
@@ -943,5 +1006,87 @@ mod tests {
             .map(|e| e.event_type)
             .collect();
         assert!(!types.iter().any(|t| t == EVENT_RESERVED_CREDIT_EARNED));
+    }
+
+    #[test]
+    fn conversations_are_isolated_and_ordered() {
+        let (_d, st) = tmp_store();
+        let a = st.create_conversation("A").unwrap();
+        let b = st.create_conversation("B").unwrap();
+        st.append_message(
+            &a.conversation_id,
+            MessageRole::User,
+            "in-a",
+            Lifecycle::Completed,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+        st.append_message(
+            &b.conversation_id,
+            MessageRole::User,
+            "in-b-1",
+            Lifecycle::Completed,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+        st.append_message(
+            &b.conversation_id,
+            MessageRole::Assistant,
+            "in-b-2",
+            Lifecycle::Completed,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+        let am = st.get_messages(&a.conversation_id).unwrap();
+        let bm = st.get_messages(&b.conversation_id).unwrap();
+        assert_eq!(am.len(), 1);
+        assert_eq!(am[0].content, "in-a");
+        assert_eq!(bm.len(), 2);
+        assert_eq!(bm[0].content, "in-b-1");
+        assert_eq!(bm[1].content, "in-b-2");
+        assert_eq!(bm[0].sequence, 1);
+        assert_eq!(bm[1].sequence, 2);
+    }
+
+    #[test]
+    fn settings_and_resource_events_persist() {
+        let dir = tempfile::tempdir().unwrap();
+        let id = NodeIdentity::generate();
+        {
+            let st = Storage::open(dir.path(), id.clone()).unwrap();
+            st.put_setting("resource_sharing", "{\"enabled\":true}")
+                .unwrap();
+            let ev = st
+                .append_event(
+                    EVENT_RESOURCE_SHARING_ENABLED,
+                    json!({"cpu_limit_percent": 40}),
+                    Visibility::Shared,
+                )
+                .unwrap();
+            events::validate_event(&ev).unwrap();
+            assert_eq!(ev.event_type, EVENT_RESOURCE_SHARING_ENABLED);
+        }
+        let st2 = Storage::open(dir.path(), id).unwrap();
+        assert_eq!(
+            st2.get_setting("resource_sharing").unwrap().as_deref(),
+            Some("{\"enabled\":true}")
+        );
+        assert!(st2
+            .list_events()
+            .unwrap()
+            .iter()
+            .any(|e| e.event_type == EVENT_RESOURCE_SHARING_ENABLED));
     }
 }

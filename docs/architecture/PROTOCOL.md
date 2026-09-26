@@ -114,7 +114,7 @@ Timeouts (production defaults; tests may shorten):
 | `hello` | both | name, version, node id, pubkey, listen port, **endpoints** (listen/reflexive/relay), label |
 | `auth-challenge` | both | random nonce |
 | `auth-response` | both | echoes nonce (signature on envelope) |
-| `capabilities` | both | `CapabilityProfile` |
+| `capabilities` | both | `CapabilityProfile` (includes `compute_sharing_enabled`; missing on old peers → true) |
 | `resource-report` | both | memory + governor capacity |
 | `peer-gossip` | both | untrusted peer hints (addrs + pubkey + expiry + hop) for introduction |
 | `ping` / `pong` | both | liveness + RTT |

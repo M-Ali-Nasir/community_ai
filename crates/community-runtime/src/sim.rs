@@ -1,9 +1,9 @@
 //! Layer-split test double. Never compiled into production binaries.
 
-use async_trait::async_trait;
-use std::path::Path;
-use community_core::Result;
 use crate::{AIBackend, SamplingParams, TensorActivation};
+use async_trait::async_trait;
+use community_core::Result;
+use std::path::Path;
 
 pub struct SimulatedAIBackend {
     vram_mb: usize,
@@ -36,7 +36,11 @@ impl AIBackend for SimulatedAIBackend {
         Ok(TensorActivation::new(input.shape, transformed))
     }
 
-    async fn sample_token(&self, logits: TensorActivation, _params: &SamplingParams) -> Result<u32> {
+    async fn sample_token(
+        &self,
+        logits: TensorActivation,
+        _params: &SamplingParams,
+    ) -> Result<u32> {
         let (max_idx, _) = logits
             .data
             .iter()

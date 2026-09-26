@@ -35,14 +35,17 @@ pub extern "C" fn community_ai_init_p2p_swarm(node_name: *const c_char) -> *mut 
     let name_str = if node_name.is_null() {
         "mobile-node"
     } else {
-        unsafe { CStr::from_ptr(node_name) }.to_str().unwrap_or("mobile-node")
+        unsafe { CStr::from_ptr(node_name) }
+            .to_str()
+            .unwrap_or("mobile-node")
     };
 
     let id_path = dirs::config_dir()
         .unwrap_or_else(|| std::path::PathBuf::from("."))
         .join("community-ai")
         .join("identity.key");
-    let identity = NodeIdentity::load_or_generate(&id_path).unwrap_or_else(|_| NodeIdentity::generate());
+    let identity =
+        NodeIdentity::load_or_generate(&id_path).unwrap_or_else(|_| NodeIdentity::generate());
     let peer_id = identity.node_id();
     let res = format!(
         "{{\"peer_id\": \"{peer_id}\", \"status\": \"identity_ready\", \"label\": \"{name_str}\", \"identity_file\": \"{}\", \"note\": \"QUIC mesh bind is async; use community-daemon / MeshSwarm::bind. Mobile WAN is NOT physically tested.\"}}",
@@ -71,7 +74,9 @@ pub extern "C" fn community_ai_plan_pipeline(
     nodes_json: *const c_char,
 ) -> *mut c_char {
     if model_id.is_null() || nodes_json.is_null() {
-        return CString::new("{\"error\": \"Null argument\"}").unwrap().into_raw();
+        return CString::new("{\"error\": \"Null argument\"}")
+            .unwrap()
+            .into_raw();
     }
 
     let c_model_id = unsafe { CStr::from_ptr(model_id) }.to_string_lossy();
@@ -91,9 +96,9 @@ pub extern "C" fn community_ai_plan_pipeline(
             let json = serde_json::to_string(&plan).unwrap_or_else(|_| "{}".into());
             CString::new(json).unwrap().into_raw()
         }
-        Err(e) => {
-            CString::new(format!("{{\"error\": \"{e}\"}}")).unwrap().into_raw()
-        }
+        Err(e) => CString::new(format!("{{\"error\": \"{e}\"}}"))
+            .unwrap()
+            .into_raw(),
     }
 }
 

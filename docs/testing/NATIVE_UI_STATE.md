@@ -1,6 +1,6 @@
 # Native UI state binding (T-070)
 
-**Updated:** 2026-09-26  
+**Updated:** 2026-09-27  
 **Rule:** A missing metric is preferable to invented data. UI values come from `community-app` views over Tauri IPC.
 
 Evidence class for these checks: **PROCESS VERIFIED** (in-process / two local `CommunityApp` sessions). **PHYSICAL WAN VERIFIED — NOT TESTED.**
@@ -23,6 +23,12 @@ Evidence class for these checks: **PROCESS VERIFIED** (in-process / two local `C
 | Tasks | originator `tasks` list in `CommunityApp` | YES | YES (`chat_without_ready_worker_is_task_error`) |
 | Chat result / tokens | `collect_inference_report` → llama.cpp | YES when a READY worker exists | PARTIAL — failure path PROCESS VERIFIED; live GGUF through **this** UI API **NOT RUN** in this gate |
 | TOKEN_STREAM in UI | QUIC events exist in core; IPC returns completed text | Core YES / UI live stream NO | **NOT VERIFIED** (T-043 remaining) |
+| Conversation list / titles | `community-storage` conversations | YES | YES (`chat_persists_locally_and_survives_restart`, `conversations_are_isolated_between_peers`) |
+| Chat messages after restart | SQLite messages table | YES | YES (same persist test) |
+| Generating indicator | UI wait state while IPC `chat` runs; no invented tokens | YES (honest wait) | Source-only; Tauri window RUNTIME **NOT TESTED** |
+| Resource sharing ACTIVE/PAUSED | `ResourceSharingConfig` + mesh advertisement | YES | YES (`resource_sharing_defaults_paused_and_survives_restart`, swarm pause/accept tests) |
+| CPU/RAM/GPU snapshot | `HardwareSnapshot::detect` (`sysinfo`; GPU fields None unless detected) | YES (CPU/RAM); GPU none unless detected | YES (GPU stays None in process tests) |
+| Wallet / credits | — | NO | **NOT IMPLEMENTED** (label only) |
 | CPU % graph | — | NO | **REMOVED** from native UI |
 | Memory graph | — | NO | **REMOVED** from native UI |
 | Fake peers | — | NO | **ABSENT** on native path |

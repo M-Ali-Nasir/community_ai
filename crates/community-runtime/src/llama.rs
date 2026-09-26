@@ -128,9 +128,9 @@ impl LlamaServerEngine {
                 },
             );
         }
-        let child = cmd.spawn().map_err(|e| {
-            CommunityError::Execution(format!("spawn llama-server: {e}"))
-        })?;
+        let child = cmd
+            .spawn()
+            .map_err(|e| CommunityError::Execution(format!("spawn llama-server: {e}")))?;
         *self.child.lock().await = Some(child);
         Ok(())
     }

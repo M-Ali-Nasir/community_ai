@@ -15,7 +15,8 @@ use community_core::{CommunityError, NodeId, Result};
 use community_protocol::{
     dial_candidates, AuthChallengeBody, AuthResponseBody, CapabilityProfile, EndpointKind,
     HelloBody, InferenceProof, MeshErrorBody, MeshErrorCode, MeshFrame, MeshPayload, NetEndpoint,
-    PeerHint, TaskOfferBody, MAX_FRAME_BYTES, MAX_FRAME_SKEW_MS, PROTOCOL_NAME, PROTOCOL_VERSION,
+    PeerHint, ResourceSharingConfig, TaskOfferBody, UserActivity, MAX_FRAME_BYTES,
+    MAX_FRAME_SKEW_MS, PROTOCOL_NAME, PROTOCOL_VERSION,
 };
 use community_runtime::InferenceService;
 use community_security::NodeIdentity;
@@ -23,8 +24,8 @@ use community_security::NodeIdentity;
 use crate::discovery::{parse_resolved, AdvertisedPeer, MdnsDiscovery, PeerDiscovery};
 use crate::frame::{read_frame, write_frame};
 use crate::state::{
-    classify_connection_mode, evidence_class_for, ConnectionMode, ConnectionReport,
-    PeerSnapshot, PeerState,
+    classify_connection_mode, evidence_class_for, ConnectionMode, ConnectionReport, PeerSnapshot,
+    PeerState,
 };
 use crate::tls::{make_client_config, make_server_config};
 
@@ -192,6 +193,7 @@ struct Inner {
     seen_msg_ids: Mutex<HashMap<NodeId, VecDeque<String>>>,
     seen_job_attempts: Mutex<HashSet<(String, String, u32)>>,
     dial_times: Mutex<VecDeque<Instant>>,
+    resource_policy: RwLock<ResourceSharingConfig>,
 }
 
 #[derive(Clone)]
@@ -227,9 +229,8 @@ impl MeshSwarm {
         }
         let server = make_server_config()?;
         let client = make_client_config()?;
-        let std_sock = std::net::UdpSocket::bind(config.bind).map_err(|e| {
-            CommunityError::Network(format!("UDP bind {}: {e}", config.bind))
-        })?;
+        let std_sock = std::net::UdpSocket::bind(config.bind)
+            .map_err(|e| CommunityError::Network(format!("UDP bind {}: {e}", config.bind)))?;
         let listen_addr = std_sock
             .local_addr()
             .map_err(|e| CommunityError::Network(format!("local_addr: {e}")))?;
@@ -277,6 +278,7 @@ impl MeshSwarm {
 
         let (events_tx, events_rx) = mpsc::unbounded_channel();
         let (dial_tx, dial_rx) = mpsc::unbounded_channel();
+        let sharing_enabled = profile.compute_sharing_enabled;
         let inner = Arc::new(Inner {
             identity,
             profile: RwLock::new(profile),
@@ -298,6 +300,11 @@ impl MeshSwarm {
             seen_msg_ids: Mutex::new(HashMap::new()),
             seen_job_attempts: Mutex::new(HashSet::new()),
             dial_times: Mutex::new(VecDeque::new()),
+            resource_policy: RwLock::new(ResourceSharingConfig {
+                enabled: sharing_enabled,
+                idle_only: false,
+                ..ResourceSharingConfig::default()
+            }),
         });
         let swarm = Self {
             inner: inner.clone(),
@@ -513,7 +520,9 @@ impl MeshSwarm {
             offer.created_unix_ms = Utc::now().timestamp_millis();
         }
         if offer.prompt.len() > community_protocol::MAX_TASK_PROMPT_BYTES {
-            return Err(CommunityError::Network("task prompt exceeds size limit".into()));
+            return Err(CommunityError::Network(
+                "task prompt exceeds size limit".into(),
+            ));
         }
         if offer.prompt.is_empty() || offer.model_id.is_empty() {
             return Err(CommunityError::Network("malformed task".into()));
@@ -659,9 +668,10 @@ impl MeshSwarm {
                 continue;
             }
             let ok = s.profile.as_ref().is_some_and(|p| {
-                p.models.iter().any(|m| {
-                    m.model_id == model_id && m.state.can_serve() && m.available
-                })
+                p.compute_sharing_enabled
+                    && p.models
+                        .iter()
+                        .any(|m| m.model_id == model_id && m.state.can_serve() && m.available)
             });
             if !ok {
                 continue;
@@ -739,6 +749,36 @@ impl MeshSwarm {
 
     pub fn shutdown(&self) {
         self.inner.endpoint.close(0u32.into(), b"shutdown");
+    }
+
+    pub async fn resource_policy(&self) -> ResourceSharingConfig {
+        self.inner.resource_policy.read().await.clone()
+    }
+
+    /// Apply local sharing limits and republish capabilities. Not a coordinator.
+    pub async fn set_resource_policy(&self, policy: ResourceSharingConfig) {
+        let policy = policy.clamp();
+        *self.inner.resource_policy.write().await = policy.clone();
+        {
+            let mut p = self.inner.profile.write().await;
+            p.compute_sharing_enabled = policy.enabled;
+            let cap = (policy.cpu_limit_percent as f32 / 100.0).clamp(0.0, 1.0);
+            p.cpu.available_fraction = p.cpu.available_fraction.min(cap);
+            if policy.memory_limit_mb > 0 {
+                p.memory.available_mb = p.memory.available_mb.min(policy.memory_limit_mb as usize);
+            }
+            if !policy.gpu_enabled {
+                p.gpu = None;
+            }
+            if !policy.enabled {
+                for m in &mut p.models {
+                    m.available = false;
+                }
+            } else if let Some(inf) = self.inner.inference.read().await.as_ref() {
+                p.models = inf.advertised_models();
+            }
+        }
+        broadcast_capabilities(&self.inner).await;
     }
 }
 
@@ -894,9 +934,9 @@ async fn run_handshake(
 
     let their_hello = read_frame(recv, inner.config.max_frame_bytes).await?;
     their_hello.verify_fresh(inner.config.max_frame_skew_ms)?;
-    let body = their_hello.as_hello().ok_or_else(|| {
-        CommunityError::Network("expected hello as first frame".into())
-    })?;
+    let body = their_hello
+        .as_hello()
+        .ok_or_else(|| CommunityError::Network("expected hello as first frame".into()))?;
     if body.protocol_name != PROTOCOL_NAME || body.protocol_version != PROTOCOL_VERSION {
         let err = MeshFrame::new(
             &inner.identity,
@@ -961,7 +1001,13 @@ async fn run_handshake(
     let their_resp = read_frame(recv, inner.config.max_frame_bytes).await?;
     their_resp.verify()?;
     let MeshPayload::AuthResponse { body: echoed } = &their_resp.payload else {
-        let _ = write_error(inner, send, MeshErrorCode::AuthFailed, "expected auth-response").await;
+        let _ = write_error(
+            inner,
+            send,
+            MeshErrorCode::AuthFailed,
+            "expected auth-response",
+        )
+        .await;
         return Err(CommunityError::Security("expected auth-response".into()));
     };
     if echoed.nonce_hex != nonce_hex || their_resp.sender_id != body.node_id {
@@ -980,11 +1026,16 @@ async fn run_handshake(
 
     let their_caps = read_frame(recv, inner.config.max_frame_bytes).await?;
     their_caps.verify()?;
-    let MeshPayload::Capabilities { profile: remote_profile } = their_caps.payload else {
+    let MeshPayload::Capabilities {
+        profile: remote_profile,
+    } = their_caps.payload
+    else {
         return Err(CommunityError::Network("expected capabilities".into()));
     };
     if remote_profile.node_id != body.node_id {
-        return Err(CommunityError::Security("capabilities node_id mismatch".into()));
+        return Err(CommunityError::Security(
+            "capabilities node_id mismatch".into(),
+        ));
     }
 
     Ok(HandshakeOk {
@@ -1120,7 +1171,9 @@ fn debug_disconnect(peer: &NodeId, e: &CommunityError) {
 async fn handle_frame(inner: &Arc<Inner>, peer_id: &NodeId, frame: MeshFrame) -> Result<()> {
     frame.verify_fresh(inner.config.max_frame_skew_ms)?;
     if frame.sender_id != *peer_id {
-        return Err(CommunityError::Security("sender does not match session".into()));
+        return Err(CommunityError::Security(
+            "sender does not match session".into(),
+        ));
     }
     {
         let mut seen = inner.seen_msg_ids.lock().await;
@@ -1135,7 +1188,10 @@ async fn handle_frame(inner: &Arc<Inner>, peer_id: &NodeId, frame: MeshFrame) ->
     }
     touch(inner, peer_id).await;
     match frame.payload {
-        MeshPayload::EchoRequest { request_id, payload } => {
+        MeshPayload::EchoRequest {
+            request_id,
+            payload,
+        } => {
             if let Some(send) = send_of(inner, peer_id).await {
                 let reply = MeshFrame::new(
                     &inner.identity,
@@ -1149,7 +1205,10 @@ async fn handle_frame(inner: &Arc<Inner>, peer_id: &NodeId, frame: MeshFrame) ->
                 write_frame(&mut g, &reply).await?;
             }
         }
-        MeshPayload::EchoReply { request_id, payload } => {
+        MeshPayload::EchoReply {
+            request_id,
+            payload,
+        } => {
             if let Some(tx) = inner.pending_echo.lock().await.remove(&request_id) {
                 let _ = tx.send(payload);
             }
@@ -1298,7 +1357,12 @@ async fn touch(inner: &Inner, id: &NodeId) {
 }
 
 async fn send_of(inner: &Inner, id: &NodeId) -> Option<Arc<Mutex<SendStream>>> {
-    inner.peers.read().await.get(id).and_then(|p| p.send.clone())
+    inner
+        .peers
+        .read()
+        .await
+        .get(id)
+        .and_then(|p| p.send.clone())
 }
 
 async fn apply_gossip(inner: Arc<Inner>, hints: Vec<PeerHint>) {
@@ -1350,7 +1414,10 @@ async fn apply_gossip(inner: Arc<Inner>, hints: Vec<PeerHint>) {
 async fn allow_dial(inner: &Inner) -> bool {
     let mut times = inner.dial_times.lock().await;
     let now = Instant::now();
-    while times.front().is_some_and(|t| now.duration_since(*t) > Duration::from_secs(60)) {
+    while times
+        .front()
+        .is_some_and(|t| now.duration_since(*t) > Duration::from_secs(60))
+    {
         times.pop_front();
     }
     if times.len() >= inner.config.max_dials_per_minute {
@@ -1402,11 +1469,7 @@ async fn maybe_gossip(inner: &Arc<Inner>, dest: &NodeId) -> Result<()> {
         return Ok(());
     }
     if let Some(send) = send_of(inner, dest).await {
-        let frame = MeshFrame::new(
-            &inner.identity,
-            MeshPayload::PeerGossip { hints },
-            None,
-        )?;
+        let frame = MeshFrame::new(&inner.identity, MeshPayload::PeerGossip { hints }, None)?;
         let mut g = send.lock().await;
         write_frame(&mut g, &frame).await?;
     }
@@ -1505,6 +1568,21 @@ async fn maintenance_loop(inner: Arc<Inner>) {
     }
 }
 
+async fn broadcast_capabilities(inner: &Inner) {
+    let profile = inner.profile.read().await.clone();
+    let ids: Vec<NodeId> = inner.peers.read().await.keys().cloned().collect();
+    for id in ids {
+        let _ = send_payload(
+            inner,
+            &id,
+            MeshPayload::Capabilities {
+                profile: profile.clone(),
+            },
+        )
+        .await;
+    }
+}
+
 async fn send_payload(inner: &Inner, peer: &NodeId, payload: MeshPayload) -> Result<()> {
     let Some(send) = send_of(inner, peer).await else {
         return Err(CommunityError::Network("peer gone".into()));
@@ -1544,6 +1622,58 @@ async fn worker_handle_offer(inner: Arc<Inner>, from: NodeId, body: TaskOfferBod
         .await;
         return;
     };
+    let policy = inner.resource_policy.read().await.clone();
+    if !policy.enabled {
+        let _ = send_payload(
+            &inner,
+            &from,
+            MeshPayload::TaskReject {
+                task_id: body.task_id,
+                reason: "resource sharing paused".into(),
+            },
+        )
+        .await;
+        return;
+    }
+    if policy.cpu_limit_percent == 0 {
+        let _ = send_payload(
+            &inner,
+            &from,
+            MeshPayload::TaskReject {
+                task_id: body.task_id,
+                reason: "cpu contribution limit is 0".into(),
+            },
+        )
+        .await;
+        return;
+    }
+    if policy.memory_limit_mb == 0 {
+        let _ = send_payload(
+            &inner,
+            &from,
+            MeshPayload::TaskReject {
+                task_id: body.task_id,
+                reason: "memory contribution limit is 0".into(),
+            },
+        )
+        .await;
+        return;
+    }
+    if policy.idle_only {
+        let activity = inner.profile.read().await.user_state.activity.clone();
+        if matches!(activity, UserActivity::Busy | UserActivity::Active) {
+            let _ = send_payload(
+                &inner,
+                &from,
+                MeshPayload::TaskReject {
+                    task_id: body.task_id,
+                    reason: "idle_only: user is active".into(),
+                },
+            )
+            .await;
+            return;
+        }
+    }
     if let Some(ref origin) = body.origin_id {
         if origin != &from {
             let _ = send_payload(
@@ -1749,10 +1879,12 @@ pub fn test_profile(identity: &NodeIdentity, label: &str) -> CapabilityProfile {
             on_battery: false,
             battery_pct: None,
         },
-            rpc: None,
-            cached_shards: vec![],
-            models: vec![],
-        }
+        rpc: None,
+        cached_shards: vec![],
+        models: vec![],
+        compute_sharing_enabled: true,
+        supported_shard_ranges: vec![],
+    }
 }
 
 #[cfg(test)]
@@ -1801,10 +1933,7 @@ mod tests {
         b.dial(a.local_addr()).await.expect("dial");
         assert!(wait_ready(&a, 1, Duration::from_secs(8)).await);
         let b_id = a.ready_ids().await.into_iter().next().expect("b id");
-        let reply = a
-            .request_echo(&b_id, "hello-work")
-            .await
-            .expect("echo");
+        let reply = a.request_echo(&b_id, "hello-work").await.expect("echo");
         assert_eq!(reply, "echo:hello-work");
         a.shutdown();
         b.shutdown();
@@ -2010,7 +2139,10 @@ mod tests {
         .unwrap();
         b.dial(a.local_addr()).await.unwrap();
         assert!(wait_ready(&a, 1, Duration::from_secs(8)).await);
-        let worker = a.select_worker_for_model("fake").await.expect("fake advertised");
+        let worker = a
+            .select_worker_for_model("fake")
+            .await
+            .expect("fake advertised");
         let offer = TaskOfferBody {
             task_id: "task-fake".into(),
             model_id: "fake".into(),
@@ -2036,10 +2168,7 @@ mod tests {
         M.get_or_init(|| tokio::sync::Mutex::new(()))
     }
 
-    async fn try_llama_engine() -> Option<(
-        Arc<community_runtime::LlamaServerEngine>,
-        String,
-    )> {
+    async fn try_llama_engine() -> Option<(Arc<community_runtime::LlamaServerEngine>, String)> {
         let (bin, dir) = community_runtime::find_llama_server()?;
         let gguf = community_runtime::first_existing_gguf()?;
         let model_id = "test-gguf".to_string();
@@ -2421,7 +2550,10 @@ mod tests {
             .await
             .expect("llama on second eligible peer");
         assert_eq!(out.executor, c.node_id());
-        assert!(out.attempts.len() >= 2, "should have tried rejector then llama");
+        assert!(
+            out.attempts.len() >= 2,
+            "should have tried rejector then llama"
+        );
         assert_eq!(out.proof.engine, community_protocol::LLAMA_CPP_ENGINE);
         assert!(!community_protocol::is_template_response(&out.text));
         a.shutdown();
@@ -2437,8 +2569,14 @@ mod tests {
         assert!(wait_ready(&a, 1, Duration::from_secs(8)).await);
         let reports = a.connection_reports().await;
         assert_eq!(reports.len(), 1);
-        assert_eq!(reports[0].connection_mode, crate::state::ConnectionMode::Direct);
-        assert_eq!(reports[0].evidence_class, crate::state::EvidenceClass::ProcessVerified);
+        assert_eq!(
+            reports[0].connection_mode,
+            crate::state::ConnectionMode::Direct
+        );
+        assert_eq!(
+            reports[0].evidence_class,
+            crate::state::EvidenceClass::ProcessVerified
+        );
         assert!(MeshSwarm::format_connection_reports(&reports).contains("DIRECT"));
         a.shutdown();
         b.shutdown();
@@ -2539,12 +2677,159 @@ mod tests {
         a.dial(relay_ep).await.expect("dial via relay allocation");
         assert!(wait_ready(&a, 1, Duration::from_secs(8)).await);
         let reports = a.connection_reports().await;
-        assert_eq!(reports[0].connection_mode, crate::state::ConnectionMode::Relay);
+        assert_eq!(
+            reports[0].connection_mode,
+            crate::state::ConnectionMode::Relay
+        );
         assert!(MeshSwarm::format_connection_reports(&reports).contains("RELAY"));
         assert!(!MeshSwarm::format_connection_reports(&reports).contains("mode: DIRECT"));
         let b_id_ready = a.ready_ids().await.into_iter().next().unwrap();
         let echo = a.request_echo(&b_id_ready, "via-relay").await.unwrap();
         assert!(echo.contains("via-relay"));
+        a.shutdown();
+        b.shutdown();
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn paused_peer_not_selected_and_rejects_offer() {
+        install_crypto_provider();
+        let a_id = NodeIdentity::generate();
+        let b_id = NodeIdentity::generate();
+        let a = MeshSwarm::bind(
+            a_id.clone(),
+            test_profile(&a_id, "originator"),
+            MeshConfig::test("127.0.0.1:0".parse().unwrap()),
+        )
+        .await
+        .unwrap();
+        let b = MeshSwarm::bind_with(
+            b_id.clone(),
+            test_profile(&b_id, "worker"),
+            MeshConfig::test("127.0.0.1:0".parse().unwrap()),
+            Some(Arc::new(TemplateEngine)),
+        )
+        .await
+        .unwrap();
+        let mut paused = ResourceSharingConfig::default();
+        paused.enabled = false;
+        b.set_resource_policy(paused).await;
+        b.dial(a.local_addr()).await.unwrap();
+        assert!(wait_ready(&a, 1, Duration::from_secs(8)).await);
+        for _ in 0..20 {
+            if a.select_workers_for_model("fake").await.is_empty() {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        assert!(
+            a.select_workers_for_model("fake").await.is_empty(),
+            "paused worker must not advertise compute"
+        );
+        let offer = TaskOfferBody {
+            task_id: "task-paused".into(),
+            model_id: "fake".into(),
+            prompt: "hello".into(),
+            timeout_ms: 8_000,
+            ..Default::default()
+        };
+        let err = a.collect_inference(&b.node_id(), offer).await.unwrap_err();
+        assert!(
+            err.to_string().contains("resource sharing paused"),
+            "enforcement must reject at worker: {err}"
+        );
+        a.shutdown();
+        b.shutdown();
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn active_peer_advertises_and_accepts_offer() {
+        install_crypto_provider();
+        let a_id = NodeIdentity::generate();
+        let b_id = NodeIdentity::generate();
+        let a = MeshSwarm::bind(
+            a_id.clone(),
+            test_profile(&a_id, "originator"),
+            MeshConfig::test("127.0.0.1:0".parse().unwrap()),
+        )
+        .await
+        .unwrap();
+        let b = MeshSwarm::bind_with(
+            b_id.clone(),
+            test_profile(&b_id, "worker"),
+            MeshConfig::test("127.0.0.1:0".parse().unwrap()),
+            Some(Arc::new(TemplateEngine)),
+        )
+        .await
+        .unwrap();
+        let mut active = ResourceSharingConfig::default();
+        active.enabled = true;
+        active.idle_only = false;
+        b.set_resource_policy(active).await;
+        b.dial(a.local_addr()).await.unwrap();
+        assert!(wait_ready(&a, 1, Duration::from_secs(8)).await);
+        let mut advertised = false;
+        for _ in 0..40 {
+            if a.select_worker_for_model("fake").await.is_some() {
+                advertised = true;
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        assert!(advertised, "ACTIVE worker should advertise READY model");
+        let offer = TaskOfferBody {
+            task_id: "task-active".into(),
+            model_id: "fake".into(),
+            prompt: "hello".into(),
+            timeout_ms: 8_000,
+            ..Default::default()
+        };
+        let err = a.collect_inference(&b.node_id(), offer).await.unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("rejected engine") || msg.contains("template"),
+            "ACTIVE worker accepted offer; originator must still reject fake engine: {msg}"
+        );
+        assert!(!msg.contains("resource sharing paused"));
+        a.shutdown();
+        b.shutdown();
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn zero_cpu_limit_rejects_even_when_active() {
+        install_crypto_provider();
+        let a_id = NodeIdentity::generate();
+        let b_id = NodeIdentity::generate();
+        let a = MeshSwarm::bind(
+            a_id.clone(),
+            test_profile(&a_id, "o"),
+            MeshConfig::test("127.0.0.1:0".parse().unwrap()),
+        )
+        .await
+        .unwrap();
+        let b = MeshSwarm::bind_with(
+            b_id.clone(),
+            test_profile(&b_id, "w"),
+            MeshConfig::test("127.0.0.1:0".parse().unwrap()),
+            Some(Arc::new(TemplateEngine)),
+        )
+        .await
+        .unwrap();
+        let mut policy = ResourceSharingConfig::default();
+        policy.enabled = true;
+        policy.idle_only = false;
+        policy.cpu_limit_percent = 0;
+        b.set_resource_policy(policy).await;
+        b.dial(a.local_addr()).await.unwrap();
+        assert!(wait_ready(&a, 1, Duration::from_secs(8)).await);
+        let offer = TaskOfferBody {
+            task_id: "task-cpu0".into(),
+            model_id: "fake".into(),
+            prompt: "hello".into(),
+            timeout_ms: 8_000,
+            ..Default::default()
+        };
+        let err = a.collect_inference(&b.node_id(), offer).await.unwrap_err();
+        assert!(err.to_string().contains("cpu contribution limit is 0"));
         a.shutdown();
         b.shutdown();
     }

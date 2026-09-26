@@ -191,6 +191,12 @@ pub const EVENT_TASK_RECORDED: &str = "TaskRecorded";
 pub const EVENT_GENERATION_RECORDED: &str = "GenerationRecorded";
 pub const EVENT_OBJECT_ADDED: &str = "ObjectAdded";
 pub const EVENT_OBJECT_TOMBSTONE: &str = "ObjectTombstone";
+pub const EVENT_RESOURCE_SHARING_ENABLED: &str = "ResourceSharingEnabled";
+pub const EVENT_RESOURCE_SHARING_PAUSED: &str = "ResourceSharingPaused";
+pub const EVENT_RESOURCE_CAPABILITY_UPDATED: &str = "ResourceCapabilityUpdated";
+pub const EVENT_COMPUTE_TASK_ACCEPTED: &str = "ComputeTaskAccepted";
+pub const EVENT_COMPUTE_TASK_COMPLETED: &str = "ComputeTaskCompleted";
+pub const EVENT_COMPUTE_TASK_REJECTED: &str = "ComputeTaskRejected";
 
 pub const EVENT_RESERVED_RESOURCE_CONTRIBUTION: &str = "ResourceContribution";
 pub const EVENT_RESERVED_CREDIT_EARNED: &str = "CreditEarned";
@@ -200,10 +206,9 @@ pub const EVENT_RESERVED_TRAINING_CONTRIBUTION: &str = "TrainingContribution";
 pub const EVENT_RESERVED_MODEL_VERSION_PUBLISHED: &str = "ModelVersionPublished";
 pub const EVENT_RESERVED_DATASET_VERSION_PUBLISHED: &str = "DatasetVersionPublished";
 
-pub const GENESIS_HASH: &str =
-    "0000000000000000000000000000000000000000000000000000000000000000";
+pub const GENESIS_HASH: &str = "0000000000000000000000000000000000000000000000000000000000000000";
 
-pub const SCHEMA_VERSION: i64 = 1;
+pub const SCHEMA_VERSION: i64 = 2;
 
 pub fn unix_ms() -> i64 {
     use std::time::{SystemTime, UNIX_EPOCH};

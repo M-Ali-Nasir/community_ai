@@ -96,7 +96,11 @@ pub fn get_object(
     }
 }
 
-pub fn tombstone_object(conn: &Connection, layout: &StorageLayout, content_hash: &str) -> Result<()> {
+pub fn tombstone_object(
+    conn: &Connection,
+    layout: &StorageLayout,
+    content_hash: &str,
+) -> Result<()> {
     if object_meta(conn, content_hash)?.is_none() {
         return Err(StorageError::NotFound(content_hash.into()));
     }

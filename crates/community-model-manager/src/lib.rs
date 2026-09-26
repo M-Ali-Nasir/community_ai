@@ -1,11 +1,11 @@
 //! Model Shard Manager & Dynamic Placement Scoring.
 //! Manages discrete model layer manifests, local LRU cache, cryptographic validation, and replica placement.
 
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use serde::{Deserialize, Serialize};
 use community_core::{Result, ShardId};
 use community_security::{compute_blake3_hash, verify_blake3_hash};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModelShardMeta {
@@ -39,7 +39,9 @@ impl ModelManifest {
                 layer_start: start,
                 layer_end: end,
                 size_bytes: 512 * 1024 * 1024, // Nominal 512MB per shard
-                blake3_hash: compute_blake3_hash(format!("{model_id}-layer-{start}-{end}").as_bytes()),
+                blake3_hash: compute_blake3_hash(
+                    format!("{model_id}-layer-{start}-{end}").as_bytes(),
+                ),
             });
         }
 
@@ -86,7 +88,10 @@ impl ShardPlacementEngine {
             .shards
             .iter()
             .map(|s| {
-                let count = replica_counts.get(&s.shard_id.canonical_name()).copied().unwrap_or(0);
+                let count = replica_counts
+                    .get(&s.shard_id.canonical_name())
+                    .copied()
+                    .unwrap_or(0);
                 let score = Self::score_shard(s, 1.0, count, node_available_mb, node_avg_rtt_ms);
                 (score, s)
             })
@@ -118,7 +123,8 @@ impl ShardCache {
 
         let filename = format!("{}.shard", shard.shard_id.canonical_name());
         let path = self.cache_dir.join(filename);
-        self.cached_shards.insert(shard.shard_id.canonical_name(), shard);
+        self.cached_shards
+            .insert(shard.shard_id.canonical_name(), shard);
         Ok(path)
     }
 

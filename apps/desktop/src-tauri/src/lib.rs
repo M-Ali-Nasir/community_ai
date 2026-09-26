@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use community_app::{AppOptions, CommunityApp};
+use community_app::{AppOptions, CommunityApp, ResourceSharingConfig};
 use tauri::State;
 use tokio::sync::Mutex;
 
@@ -24,12 +24,13 @@ async fn require_app(state: &State<'_, AppState>) -> Result<Arc<CommunityApp>, S
 #[tauri::command]
 async fn session(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     match state.session.lock().await.as_ref() {
-        Some(app) => serde_json::to_value(app.session_view()).map_err(|e| e.to_string()),
+        Some(app) => serde_json::to_value(app.session_view().await).map_err(|e| e.to_string()),
         None => Ok(serde_json::json!({
             "started": false,
             "local_peer_id": null,
             "model_id": "",
-            "wan_status": "PHYSICAL WAN VERIFIED — NOT TESTED"
+            "wan_status": "PHYSICAL WAN VERIFIED — NOT TESTED",
+            "active_conversation_id": null
         })),
     }
 }
@@ -73,6 +74,41 @@ async fn tasks(state: State<'_, AppState>) -> Result<serde_json::Value, String> 
 }
 
 #[tauri::command]
+async fn conversations(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let app = require_app(&state).await?;
+    serde_json::to_value(app.list_conversations().map_err(|e| e.to_string())?)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn create_conversation(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let app = require_app(&state).await?;
+    let rec = app
+        .create_and_select_conversation("Chat")
+        .await
+        .map_err(|e| e.to_string())?;
+    serde_json::to_value(rec).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn set_active_conversation(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    let app = require_app(&state).await?;
+    app.set_active_conversation(&id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn messages(
+    state: State<'_, AppState>,
+    conversation_id: String,
+) -> Result<serde_json::Value, String> {
+    let app = require_app(&state).await?;
+    serde_json::to_value(app.get_messages(&conversation_id).map_err(|e| e.to_string())?)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 async fn dial(state: State<'_, AppState>, addr: String) -> Result<String, String> {
     let app = require_app(&state).await?;
     app.dial_peer(&addr).await.map_err(|e| e.to_string())
@@ -80,14 +116,41 @@ async fn dial(state: State<'_, AppState>, addr: String) -> Result<String, String
 
 /// Real mesh inference. Never returns template / synthetic chat.
 #[tauri::command]
-async fn chat(state: State<'_, AppState>, prompt: String) -> Result<serde_json::Value, String> {
+async fn chat(
+    state: State<'_, AppState>,
+    prompt: String,
+    conversation_id: Option<String>,
+) -> Result<serde_json::Value, String> {
     let app = require_app(&state).await?;
     let prompt = prompt.trim();
     if prompt.is_empty() {
         return Err("prompt is empty".into());
     }
-    let result = app.chat(prompt).await.map_err(|e| e.to_string())?;
+    let result = app
+        .chat_in(conversation_id.as_deref(), prompt)
+        .await
+        .map_err(|e| e.to_string())?;
     serde_json::to_value(result).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn resource(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let app = require_app(&state).await?;
+    serde_json::to_value(app.resource_view().await).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn set_resource(
+    state: State<'_, AppState>,
+    sharing: ResourceSharingConfig,
+) -> Result<serde_json::Value, String> {
+    let app = require_app(&state).await?;
+    serde_json::to_value(
+        app.set_resource_sharing(sharing)
+            .await
+            .map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())
 }
 
 pub fn run() {
@@ -114,7 +177,21 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            session, peer_id, ready_peers, peers, network, models, tasks, dial, chat
+            session,
+            peer_id,
+            ready_peers,
+            peers,
+            network,
+            models,
+            tasks,
+            conversations,
+            create_conversation,
+            set_active_conversation,
+            messages,
+            dial,
+            chat,
+            resource,
+            set_resource
         ])
         .run(tauri::generate_context!())
         .expect("tauri");
