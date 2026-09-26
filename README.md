@@ -51,7 +51,7 @@ All pre-compiled packages and installation scripts are available directly in thi
 | **Android** | `CommunityAI.apk` | [⬇️ Download Android APK](dist/CommunityAI.apk) | 1-Tap Mobile App Installer |
 | **Ubuntu / Linux** | `install-desktop.sh` | [⬇️ Run Desktop Installer](dist/install-desktop.sh) | 1-Click Desktop & Menu Shortcut |
 | **Ubuntu / Linux** | `launch-app.sh` | [⬇️ Run Direct Launcher](dist/launch-app.sh) | Standalone Native App Window |
-| **All Platforms (WAN)** | `start-wan-mesh.sh` | [⬇️ Start WAN Mesh Relay](dist/start-wan-mesh.sh) | Global Internet Mesh Relay |
+| **All Platforms (WAN)** | `start-wan-mesh.sh` | [⬇️ LEGACY coordinator tunnel](dist/start-wan-mesh.sh) | **DEPRECATED** — not production WAN. Use `scripts/wan-inference-harness.sh` |
 | **Web / Browser** | Web PWA Build | [🌐 Launch Web App](community-ai/packages/web/) | Zero-Install Instant WebGPU |
 
 ---

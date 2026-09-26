@@ -120,7 +120,7 @@ Format: Problem → Constraints → Options → Decision → Why → Consequence
 
 | Asset | Disposition |
 |-------|-------------|
-| TS protocol / worker-node (llama) | MIGRATE useful inference; then deprecate hub path |
+| TS protocol / worker-node (llama) | **LEGACY** — binary layout reference only; no new production features (`packages/worker-node/LEGACY.md`) |
 | TS **coordinator** | **LEGACY** — do not use for mesh; schedule REMOVE |
 | Web PWA + WebLLM | KEEP for debug; not final runtime or mesh |
 | `trystero` | REMOVE |
@@ -130,7 +130,7 @@ Format: Problem → Constraints → Options → Decision → Why → Consequence
 | SimulatedAIBackend | KEEP under `sim` only |
 | Android WebView APK | MIGRATE to native+JNI |
 | iOS Swift stubs | KEEP as seed; build real app |
-| Chrome launch scripts | DEMOTE / REPLACE |
+| Chrome launch scripts | **LEGACY / DEPRECATED** (`dist/launch-app.sh`, `dist/start-wan-mesh.sh`) |
 
 ---
 

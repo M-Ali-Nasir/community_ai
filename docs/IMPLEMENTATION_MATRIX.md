@@ -1,9 +1,9 @@
 # IMPLEMENTATION MATRIX
 
-**Audit date:** 2026-09-25  
-**Branch / workspace:** `community_ai_v1` / `/home/muhammad-ali-nasir/Documents/learning`  
-**Auditor role:** Manager Agent (Phase 0)  
-**Method:** Source inspection only — documentation claims were not trusted.
+**Audit date:** 2026-09-26  
+**Branch / workspace:** `community-ai-stage1-tauri-wan`  
+**Auditor role:** Manager Agent (Stage 1B)  
+**Method:** Source inspection + `community-app` process tests. Tauri window BUILD/RUNTIME **NOT TESTED** this gate.
 
 Classification legend:
 
@@ -28,7 +28,7 @@ Classification legend:
 | Model catalog (`qwen3-14b` only) | PARTIAL | Catalog exists; `largestModelFitting` ignores RAM; disk models / smoke still reference other IDs |
 | `@community-ai/coordinator` Express+WS hub | LEGACY | Hub topology; **not** required for the mesh (ADR-0011) |
 | Analyzer / scheduler / pipeline | REAL | `analyzer.ts`, `scheduler.ts`, `pipeline.ts`, `jobs.ts` |
-| `@community-ai/worker-node` + llama.cpp / GGUF | REAL | `packages/worker-node/src/runtime/llama*.ts`, agents |
+| `@community-ai/worker-node` + llama.cpp / GGUF | LEGACY | Node CLI + coordinator WS. Target worker is Rust daemon. See `packages/worker-node/LEGACY.md`. No new production features. |
 | Optional `node-llama-cpp` | PARTIAL | Dynamic import; worker may be not-ready if missing |
 | Web PWA shell (React/Vite) | REAL | `packages/web` builds and serves UI |
 | Chat answers (`inferenceEngine.ts`) | DISABLED | `generateModelResponse` throws; not production |
@@ -65,7 +65,7 @@ Classification legend:
 | `community-network` `MeshSwarm` | REAL | QUIC + handshake + WAN endpoints + gossip + tasks + originator reassign |
 | `community-network` STUN | PARTIAL | RFC 5389 client; live public STUN **NOT TESTED** |
 | `community-network` relay | PARTIAL | Opaque UDP forward **PROCESS VERIFIED**; WAN hole-punch **NOT TESTED** |
-| `community-app` | REAL (API) | Native mesh session; no browser |
+| `community-app` | REAL (API) | Native mesh session; peers/network/models/tasks/chat views; CPU/memory graphs **removed** from UI |
 | `community-network` `InMemorySwarm` | SIMULATED | Test utility only |
 | `community-daemon` | REAL (mesh + optional llama) | `--model` loads GGUF; no coordinator |
 | `community-simulator` | SIMULATED | Intentional cluster CLI |
@@ -95,9 +95,9 @@ Classification legend:
 | `CommunityAI.apk` | REAL (WebView shell) | Installable; not native inference |
 | `launch-app.sh` | REAL + browser-dependent | `npm run dev` + Chrome `--app=` |
 | `install-desktop.sh` | REAL | Desktop entry + icons |
-| `start-wan-mesh.sh` | PARTIAL | cloudflared to coordinator; hardcoded LAN IP |
-| Native desktop binary (Tauri/Electron-free) | PARTIAL | `community-app` + daemon; Tauri window scaffolded, not CI-built |
-| Non-browser worker today | REAL (TS) | `worker-node` Node CLI — not Rust daemon |
+| `start-wan-mesh.sh` | LEGACY / DEPRECATED | cloudflared + TypeScript coordinator; **not** production WAN. Use `scripts/wan-inference-harness.sh` |
+| Native desktop binary (Tauri/Electron-free) | PARTIAL | UI+IPC+Rust IMPLEMENTED; Linux/Windows/macOS BUILD/RUNTIME/PHYSICAL all **NOT TESTED** |
+| Non-browser worker today | LEGACY (TS) | `worker-node` — not the production worker; Rust `community-daemon` is |
 
 ---
 

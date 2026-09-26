@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Community AI</title>
+    <style>
+      :root {
+        --bg: #12100e;
+        --panel: #1c1814;
+        --line: #3a322a;
+        --text: #f2ebe3;
+        --muted: #a89888;
+        --brand: #e86a17;
+        --ok: #3d9a6a;
+        --warn: #c9a227;
+        --bad: #c44b3c;
+        --mono: "IBM Plex Mono", "SF Mono", ui-monospace, monospace;
+        --sans: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        font-family: var(--sans);
+        background:
+          radial-gradient(1200px 600px at 10% -10%, #2a1c12 0%, transparent 55%),
+          linear-gradient(180deg, #161310, var(--bg));
+        color: var(--text);
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        padding: 0.85rem 1.25rem;
+        border-bottom: 1px solid var(--line);
+        background: rgba(18, 16, 14, 0.85);
+        backdrop-filter: blur(8px);
+      }
+      .brand {
+        font-size: 1.35rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--brand);
+        margin: 0;
+      }
+      .wan-pill {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--warn);
+        border: 1px solid #6a5620;
+        background: #2a230f;
+        padding: 0.28rem 0.55rem;
+        border-radius: 4px;
+      }
+      .peer-chip {
+        margin-left: auto;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        color: var(--muted);
+        max-width: 40vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      nav {
+        display: flex;
+        gap: 0.35rem;
+      }
+      nav button {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        padding: 0.45rem 0.7rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font: inherit;
+      }
+      nav button.active, nav button:hover {
+        background: #2a221c;
+        color: var(--text);
+      }
+      main {
+        display: grid;
+        grid-template-columns: 1fr;
+        min-height: 0;
+      }
+      .panel {
+        display: none;
+        min-height: 0;
+        padding: 1rem 1.25rem 1.5rem;
+        overflow: auto;
+      }
+      .panel.active { display: grid; gap: 1rem; }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 1rem;
+        min-height: 0;
+      }
+      @media (max-width: 900px) {
+        .grid-2 { grid-template-columns: 1fr; }
+        .peer-chip { display: none; }
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 1rem;
+        min-height: 0;
+      }
+      h2 {
+        margin: 0 0 0.75rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .chat-log {
+        height: min(52vh, 420px);
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+      .bubble {
+        max-width: 92%;
+        padding: 0.7rem 0.85rem;
+        border-radius: 10px;
+        line-height: 1.45;
+        white-space: pre-wrap;
+      }
+      .bubble.user {
+        align-self: flex-end;
+        background: #3a2416;
+        border: 1px solid #5a3a22;
+      }
+      .bubble.assistant {
+        align-self: flex-start;
+        background: #201c18;
+        border: 1px solid var(--line);
+      }
+      .bubble.meta {
+        align-self: center;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        color: var(--muted);
+        background: transparent;
+        border: 0;
+        padding: 0.2rem;
+      }
+      .composer {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.5rem;
+      }
+      textarea, input {
+        width: 100%;
+        background: #14110f;
+        border: 1px solid var(--line);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 0.7rem 0.8rem;
+        font: inherit;
+        resize: vertical;
+      }
+      button.primary {
+        background: var(--brand);
+        color: #1a0f08;
+        border: 0;
+        border-radius: 8px;
+        padding: 0.7rem 1rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button.primary:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+      }
+      th, td {
+        text-align: left;
+        padding: 0.45rem 0.35rem;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th { color: var(--muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
+      code, .mono { font-family: var(--mono); font-size: 0.8rem; }
+      .empty { color: var(--muted); font-size: 0.9rem; }
+      .badge {
+        display: inline-block;
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        border: 1px solid var(--line);
+      }
+      .badge.ok { color: var(--ok); border-color: #2f6a4a; }
+      .badge.warn { color: var(--warn); border-color: #6a5620; }
+      .badge.bad { color: var(--bad); border-color: #6a3028; }
+      .note {
+        font-size: 0.85rem;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+      .row { display: flex; gap: 0.5rem; align-items: center; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1 class="brand">Community AI</h1>
+      <nav>
+        <button data-panel="chat" class="active">Chat</button>
+        <button data-panel="peers">Peers</button>
+        <button data-panel="models">Models</button>
+        <button data-panel="tasks">Tasks</button>
+        <button data-panel="network">Network</button>
+        <button data-panel="settings">Settings</button>
+      </nav>
+      <span class="wan-pill" id="wan-pill">PHYSICAL WAN VERIFIED — NOT TESTED</span>
+      <span class="peer-chip mono" id="local-peer">peer: starting…</span>
+    </header>
+    <main>
+      <section class="panel active" id="panel-chat">
+        <div class="grid-2">
+          <div class="card">
+            <h2>Chat</h2>
+            <div class="chat-log" id="chat-log"></div>
+            <div class="composer">
+              <textarea id="prompt" rows="3" placeholder="Ask a peer that has a READY model…"></textarea>
+              <button class="primary" id="send">Send</button>
+            </div>
+            <p class="note">Uses the Rust mesh (`run_inference_with_reassign`). No templates, no WebRTC, no TypeScript coordinator.</p>
+          </div>
+          <div class="card">
+            <h2>Last inference</h2>
+            <div id="last-meta" class="empty">No task yet.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-peers">
+        <div class="card">
+          <h2>Peers</h2>
+          <div id="peers-table" class="empty">Waiting for mesh…</div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-models">
+        <div class="card">
+          <h2>Models</h2>
+          <div id="models-table" class="empty">No model advertisements yet.</div>
+          <p class="note">Lifecycle states are from the Rust core. Timers never invent READY.</p>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-tasks">
+        <div class="card">
+          <h2>Tasks</h2>
+          <div id="tasks-table" class="empty">No tasks originated from this UI yet.</div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-network">
+        <div class="card">
+          <h2>Network</h2>
+          <div id="network-view" class="empty">…</div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-settings">
+        <div class="card">
+          <h2>Settings</h2>
+          <p class="note">Dial a bootstrap peer by listen address. Identity and QUIC stay in the Rust core.</p>
+          <div class="row" style="margin-top:0.75rem">
+            <input id="dial-addr" placeholder="203.0.113.10:4433" />
+            <button class="primary" id="dial-btn">Dial</button>
+          </div>
+          <p class="mono" id="dial-status" style="margin-top:0.75rem;color:var(--muted)"></p>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      let invoke = null;
+
+      async function api(cmd, args = {}) {
+        if (!invoke) {
+          if (window.__TAURI__?.core?.invoke) invoke = window.__TAURI__.core.invoke;
+          else throw new Error("Tauri IPC unavailable — open via `npx tauri dev`");
+        }
+        return invoke(cmd, args);
+      }
+
+      function badge(mode) {
+        const m = (mode || "").toUpperCase();
+        let cls = "badge";
+        if (m === "DIRECT" || m === "READY" || m === "TASK_RESULT" || m === "SUCCESS") cls += " ok";
+        else if (m === "RELAY" || m.includes("NOT TESTED") || m === "ABSENT") cls += " warn";
+        else if (m === "FAILED" || m === "TASK_ERROR" || m === "TASK_TIMEOUT") cls += " bad";
+        return `<span class="${cls}">${m || "—"}</span>`;
+      }
+
+      function addBubble(role, text) {
+        const el = document.createElement("div");
+        el.className = `bubble ${role}`;
+        el.textContent = text;
+        $("chat-log").appendChild(el);
+        $("chat-log").scrollTop = $("chat-log").scrollHeight;
+      }
+
+      document.querySelectorAll("nav button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll("nav button").forEach((b) => b.classList.remove("active"));
+          document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
+          btn.classList.add("active");
+          $(`panel-${btn.dataset.panel}`).classList.add("active");
+          refresh();
+        });
+      });
+
+      $("send").addEventListener("click", async () => {
+        const prompt = $("prompt").value.trim();
+        if (!prompt) return;
+        $("send").disabled = true;
+        addBubble("user", prompt);
+        addBubble("meta", "TASK_OFFER → selecting READY peer…");
+        $("prompt").value = "";
+        try {
+          const r = await api("chat", { prompt });
+          addBubble("assistant", r.text || "(empty response)");
+          const attempts = (r.attempts || [])
+            .map((a) => `Attempt ${a.attempt} → ${a.worker} → ${a.result}`)
+            .join("\n");
+          $("last-meta").innerHTML = `
+            <div><strong>Executor</strong> <span class="mono">${r.executor}</span></div>
+            <div style="margin-top:0.4rem">${badge(r.connection_mode)} · engine <span class="mono">${r.engine}</span></div>
+            <div class="mono" style="margin-top:0.5rem;color:var(--muted)">
+              TTFT ${r.time_to_first_token_ms ?? "—"} ms · ${r.tokens?.length ?? 0} tokens ·
+              ${Number(r.tokens_per_sec || 0).toFixed(2)} tok/s · ${r.total_ms} ms
+            </div>
+            <pre class="mono" style="margin-top:0.75rem;white-space:pre-wrap;color:var(--muted)">${attempts || "single attempt"}</pre>
+          `;
+          addBubble("meta", `TASK_RESULT · ${r.connection_mode} · ${r.executor}`);
+        } catch (e) {
+          const msg = String(e);
+          const status = /timeout/i.test(msg) ? "TASK_TIMEOUT" : "TASK_ERROR";
+          addBubble("meta", `${status} · ${msg}`);
+          $("last-meta").innerHTML = `<span class="badge bad">${status}</span> <span class="mono">${msg}</span>`;
+        } finally {
+          $("send").disabled = false;
+          refresh();
+        }
+      });
+
+      $("dial-btn").addEventListener("click", async () => {
+        const addr = $("dial-addr").value.trim();
+        $("dial-status").textContent = "dialing…";
+        try {
+          const id = await api("dial", { addr });
+          $("dial-status").textContent = `connected peer ${id}`;
+          refresh();
+        } catch (e) {
+          $("dial-status").textContent = String(e);
+        }
+      });
+
+      function renderPeers(peers) {
+        if (!peers?.length) {
+          $("peers-table").innerHTML = `<p class="empty">No authenticated peers yet. Dial from Settings or wait for discovery.</p>`;
+          return;
+        }
+        $("peers-table").innerHTML = `<table>
+          <thead><tr><th>Peer</th><th>State</th><th>Mode</th><th>RTT</th><th>Endpoints</th><th>Models</th></tr></thead>
+          <tbody>${peers.map((p) => `<tr>
+            <td class="mono">${p.peer_id}</td>
+            <td>${badge(p.state)}</td>
+            <td>${badge(p.connection_mode)}</td>
+            <td class="mono">${p.rtt_ms == null ? "—" : p.rtt_ms.toFixed(1) + " ms"}</td>
+            <td class="mono">${(p.endpoints || []).map((e) => `${e.kind} ${e.addr}`).join("<br>") || p.session_addr}</td>
+            <td class="mono">${(p.models || []).map((m) => `${m.model_id}:${m.state}`).join("<br>") || "—"}</td>
+          </tr>`).join("")}</tbody></table>`;
+      }
+
+      function renderModels(models) {
+        if (!models?.length) {
+          $("models-table").innerHTML = `<p class="empty">No models.</p>`;
+          return;
+        }
+        $("models-table").innerHTML = `<table>
+          <thead><tr><th>Model</th><th>State</th><th>Runtime</th><th>Peer</th><th>Available</th></tr></thead>
+          <tbody>${models.map((m) => `<tr>
+            <td class="mono">${m.model_id}</td>
+            <td>${badge(m.state)}</td>
+            <td class="mono">${m.runtime} ${m.quantization}</td>
+            <td class="mono">${m.peer_id || "—"}</td>
+            <td class="mono">${m.available ? "yes" : "no"}</td>
+          </tr>`).join("")}</tbody></table>`;
+      }
+
+      function renderTasks(tasks) {
+        if (!tasks?.length) {
+          $("tasks-table").innerHTML = `<p class="empty">No originated tasks.</p>`;
+          return;
+        }
+        $("tasks-table").innerHTML = `<table>
+          <thead><tr><th>Task</th><th>Status</th><th>Model</th><th>Attempts</th><th>Executor</th></tr></thead>
+          <tbody>${tasks.map((t) => `<tr>
+            <td class="mono">${t.task_id}<div style="color:var(--muted)">${t.prompt_preview}</div></td>
+            <td>${badge(t.status)}${t.error ? `<div class="mono" style="color:var(--bad)">${t.error}</div>` : ""}</td>
+            <td class="mono">${t.model_id}</td>
+            <td class="mono">${(t.attempts || []).map((a) => `Attempt ${a.attempt} → ${a.worker} → ${a.result}`).join("<br>") || "—"}</td>
+            <td class="mono">${t.executor || "—"} ${t.connection_mode ? badge(t.connection_mode) : ""}</td>
+          </tr>`).join("")}</tbody></table>`;
+      }
+
+      function renderNetwork(n) {
+        if (!n) return;
+        $("wan-pill").textContent = n.wan_status || "PHYSICAL WAN VERIFIED — NOT TESTED";
+        const eps = (n.endpoints || []).map((e) => `<div class="mono">${e.kind} ${e.addr}</div>`).join("");
+        const cons = (n.connections || []).map((c) => `<tr>
+          <td class="mono">${c.peer_id}</td>
+          <td>${badge(c.connection_mode)}</td>
+          <td class="mono">${c.session_addr}</td>
+          <td class="mono">${c.rtt_ms == null ? "—" : c.rtt_ms.toFixed(1)}</td>
+          <td class="mono">${c.evidence_class}</td>
+        </tr>`).join("");
+        $("network-view").innerHTML = `
+          <div><strong>Local peer</strong> <span class="mono">${n.local_peer_id}</span></div>
+          <div style="margin-top:0.35rem"><strong>Listen</strong> <span class="mono">${n.listen_addr}</span> · ready peers ${n.ready_peers}</div>
+          <div style="margin-top:0.75rem"><strong>Advertised endpoints</strong>${eps || '<div class="empty">none</div>'}</div>
+          <p class="note" style="margin-top:0.75rem">${n.evidence_note || ""}</p>
+          <table style="margin-top:0.75rem">
+            <thead><tr><th>Peer</th><th>Mode</th><th>Session</th><th>RTT</th><th>Evidence</th></tr></thead>
+            <tbody>${cons || '<tr><td colspan="5" class="empty">No connections</td></tr>'}</tbody>
+          </table>`;
+      }
+
+      async function refresh() {
+        try {
+          const s = await api("session");
+          if (s.local_peer_id) $("local-peer").textContent = `peer: ${s.local_peer_id}`;
+          if (s.wan_status) $("wan-pill").textContent = s.wan_status;
+          if (!s.started) return;
+          const [p, m, t, n] = await Promise.all([
+            api("peers"),
+            api("models"),
+            api("tasks"),
+            api("network"),
+          ]);
+          renderPeers(p);
+          renderModels(m);
+          renderTasks(t);
+          renderNetwork(n);
+        } catch (e) {
+          $("local-peer").textContent = String(e);
+        }
+      }
+
+      refresh();
+      setInterval(refresh, 2500);
+    </script>
+  </body>
+</html>
