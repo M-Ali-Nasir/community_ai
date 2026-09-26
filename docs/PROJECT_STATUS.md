@@ -1,9 +1,9 @@
 # PROJECT STATUS
 
-**Updated:** 2026-09-25  
+**Updated:** 2026-09-26  
 **Owner:** Manager Agent  
-**Phase:** Stage 1 WAN inference validation — **PROCESS VERIFIED**, **PHYSICAL WAN NOT TESTED**  
-**Product claim vs reality:** Native originator can get **real llama.cpp tokens** from a worker over QUIC on **one machine**, with DIRECT vs RELAY labeled. Two different public ISPs have **not** been used.
+**Phase:** Stage 1B — native application verification; network **frozen**  
+**WAN claim:** `PHYSICAL WAN VERIFIED — NOT TESTED` (B-010 open)
 
 ---
 
@@ -15,12 +15,73 @@ There is no permanent coordinator. A peer coordinates only a task it originated.
 
 ---
 
+## Evidence classes (mandatory)
+
+| Class | Meaning |
+|-------|---------|
+| **VERIFIED** | Actual evidence exists for that exact claim |
+| **PROCESS VERIFIED** | Multiple local/native processes (same host / loopback) |
+| **NETWORK EMULATED** | Simulated network conditions (`tc` / netem); not physical WAN |
+| **PHYSICAL WAN VERIFIED** | Two independent public Internet connections |
+| **NOT TESTED** | No evidence |
+
+Do **not** promote WAN from localhost, loopback, multi-process same host, same LAN, compile success, or STUN/relay unit tests.
+
+---
+
+## Stage 1 gate
+
+| Class | Status |
+|-------|--------|
+| PROCESS VERIFIED | QUIC mesh, STUN client, opaque relay, DIRECT/RELAY classify, llama.cpp GGUF tokens, reassignment (one host); native `community-app` peer views + chat failure path |
+| NETWORK EMULATED | Scripts exist; do not invent results |
+| PHYSICAL WAN VERIFIED | **NOT TESTED** |
+
+**Network feature freeze:** no new discovery/relay/coordinator/protocol/WebRTC/WebSocket control plane unless a real WAN test exposes a concrete defect.
+
+---
+
+## Two tracks
+
+| Track | Focus | Status |
+|-------|--------|--------|
+| **A — WAN validation** | B-010 / T-119 physical two-ISP test | **BLOCKED BY TEST ENVIRONMENT** |
+| **B — Product** | T-070 / T-060 / T-043 native app over Rust core | **IN PROGRESS** |
+
+Track B is **not** blocked on B-010. Layer-split remains **DEFERRED**.
+
+---
+
+## Desktop platform status
+
+Do not collapse this into “desktop supported.”
+
+| OS | BUILD VERIFIED | RUNTIME VERIFIED | PHYSICAL TESTED |
+|----|----------------|------------------|-----------------|
+| Linux | **NOT TESTED** (Tauri CLI/webkit not confirmed this gate) | **NOT TESTED** | **NOT TESTED** |
+| Windows | **NOT TESTED** | **NOT TESTED** | **NOT TESTED** |
+| macOS | **NOT TESTED** | **NOT TESTED** | **NOT TESTED** |
+
+Native UI + IPC + Rust API exist in source. That is **IMPLEMENTED**, not BUILD/RUNTIME verified.
+
+## Mobile status
+
+| OS | Status |
+|----|--------|
+| Android | **NOT PHYSICALLY TESTED** — do not claim support |
+| iOS | **NOT PHYSICALLY TESTED** — do not claim support |
+
+Eventually each mobile OS needs BUILD / RUNTIME / P2P / INFERENCE verified. Shared Rust core stays reusable.
+
+---
+
 ## Executive summary
 
-1. **Legacy TypeScript hub** — LEGACY. Not the production mesh.
-2. **Rust core:** Ed25519 identity, `quinn` QUIC, optional mDNS, WAN endpoints (listen / STUN / relay), gossip, originator reassignment, `llama-server` b10632.
-3. **Native API:** `crates/community-app`. Daemon `--mode originator|worker`. Tauri window **not** CI-built.
-4. **Relay:** QUIC via local opaque relay is **PROCESS VERIFIED** (`two_peers_quic_through_opaque_relay`). Not a coordinator. WAN relay **NOT TESTED**.
+1. **Legacy TypeScript hub / worker-node / `start-wan-mesh.sh`** — LEGACY / DEPRECATED. Not the production mesh.
+2. **Rust core:** Ed25519, `quinn` QUIC, optional mDNS/STUN/relay — **frozen** pending WAN evidence.
+3. **Native API:** `community-app` views for peers/network/models/tasks/chat. No CPU/memory graphs (no honest UI source yet).
+4. **Chat:** Tauri `chat` → mesh → llama.cpp. Live window GGUF **NOT VERIFIED**. Live UI token stream **missing** (T-043). Failure → `TASK_ERROR` / `TASK_TIMEOUT`.
+5. **WAN:** `PHYSICAL WAN VERIFIED — NOT TESTED`.
 
 ---
 
@@ -29,36 +90,22 @@ There is no permanent coordinator. A peer coordinates only a task it originated.
 | Phase | Name | Status |
 |-------|------|--------|
 | 0 | Audit | **DONE** |
-| 1 | Architecture | **LOCKED** — ADR-0011 + ADR-0012 WAN-first |
-| 2 | Real P2P | **PROCESS-LEVEL VERIFIED** — physical LAN **NOT TESTED** |
-| 3 | WAN-first P2P / Stage 1 validation | **IN PROGRESS** — harness + process evidence; **PHYSICAL WAN NOT TESTED** |
-| 3 (old) | Model system | **PARTIAL** — READY = load + smoke; no P2P model download |
-| 4 | Real inference | **PARTIAL** — llama.cpp tokens over mesh; no native chat UI |
-| 5 | Distributed execution | **PARTIAL** — remote full-model + originator reassign; **no layer-split** |
-| 6 | Native platforms | **STARTED** (`community-app`); Tauri window / mobile **NOT TESTED** |
-| 7–10 | UI / security / packaging | Open |
-
----
-
-## Mesh validation (honest)
-
-See `docs/testing/MESH_VALIDATION.md`.
-
-| Class | Status |
-|-------|--------|
-| PROCESS VERIFIED (loopback / one host) | QUIC mesh, gossip, llama tokens, reassign, relay opaque forward, identity≠port |
-| NETWORK EMULATED | Script present; **NOT RUN** unless `tc` + privileges |
-| PHYSICAL WAN VERIFIED | **NOT TESTED** |
-| Physical LAN two machines | **NOT TESTED** |
+| 1 | Architecture | **LOCKED** — ADR-0011 + ADR-0012 |
+| 2 | Real P2P | **PROCESS VERIFIED** — physical LAN **NOT TESTED** |
+| 3 | WAN / Stage 1 | Architecture **IMPLEMENTED**; physical WAN **NOT TESTED**; **network frozen** |
+| 4 | Real inference | **PROCESS VERIFIED** on mesh; native chat **IN PROGRESS** |
+| 5 | Distributed execution | Remote full-model + reassign; **no layer-split** |
+| 6 | Native platforms | **IN PROGRESS** — see platform tables above |
+| 7–10 | Packaging / security | Open |
 
 ---
 
 ## Blockers (open)
 
-1. **WAN PHYSICAL TEST — NOT TESTED** — do not fabricate (T-119).
-2. **Tauri window** not built in this environment (webkit/CLI).
-3. **Mobile** JNI/Swift mesh bind not physically tested.
-4. Physical multi-machine LAN still unused (not a Phase 3 gate).
+1. **B-010 WAN PHYSICAL** — NOT TESTED (Track A).
+2. **B-003 Tauri window** — IMPLEMENTED in source; BUILD/RUNTIME **NOT TESTED** this gate.
+3. **B-004 Mobile** — **NOT PHYSICALLY TESTED**.
+4. Physical multi-machine LAN — NOT TESTED (not a Stage 1 gate).
 
 ---
 
@@ -66,10 +113,8 @@ See `docs/testing/MESH_VALIDATION.md`.
 
 | Artifact | Path |
 |----------|------|
+| Native UI state matrix | `docs/testing/NATIVE_UI_STATE.md` |
 | WAN validation | `docs/testing/WAN_VALIDATION.md` |
 | WAN harness | `scripts/wan-inference-harness.sh` |
-| Mesh tests | `docs/testing/MESH_TEST.md` |
-| Mesh validation | `docs/testing/MESH_VALIDATION.md` |
-| Inference tests | `docs/testing/INFERENCE_TEST.md` |
-| Implementation matrix | `docs/IMPLEMENTATION_MATRIX.md` |
 | Task board | `docs/TASK_BOARD.md` |
+| Blockers | `docs/BLOCKERS.md` |

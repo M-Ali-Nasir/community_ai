@@ -1,4 +1,12 @@
 #!/usr/bin/env node
+/**
+ * LEGACY / NON-PRODUCTION for the target architecture.
+ *
+ * Target path: native app → Rust core (MeshSwarm) → llama.cpp.
+ * This Node CLI talks to the TypeScript coordinator over WebSocket.
+ * Keep for migration/history and llama.cpp binary layout reference.
+ * Do not add new production features here.
+ */
 import { hostname } from "node:os";
 import {
   type CapabilityProfile,

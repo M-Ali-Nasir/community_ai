@@ -14,6 +14,9 @@ members = [
     "crates/community-ffi",
     "crates/community-app",
 ]
+exclude = [
+    "apps/desktop/src-tauri",
+]
 
 [workspace.package]
 version = "1.0.0"

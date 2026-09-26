@@ -1,8 +1,37 @@
 # TASK BOARD
 
-**Updated:** 2026-09-25  
+**Updated:** 2026-09-26  
 **Owner:** Manager Agent  
-**Rule:** Do not start UI/P2P cosmetics before protocol + transport exist. Do not mark DONE without tests on real behavior.
+**Rule:** Do not mark DONE without tests on real behavior. **Network architecture is FROZEN** unless a physical WAN test exposes a concrete defect. Track A (B-010) does not block Track B (native product). UI must never fabricate state.
+
+### Manager tracks
+
+| Track | Scope | Status |
+|-------|--------|--------|
+| A — WAN validation | T-119 / B-010 physical two-ISP | **BLOCKED BY TEST ENVIRONMENT** |
+| B — Product | T-070 real UI binding, T-060 Tauri runtime, T-043 real chat | **IN_PROGRESS** |
+
+### Current priority
+
+```text
+P0
+├── T-070 Real UI state binding
+├── Native Tauri runtime verification
+├── Native real-chat integration (T-043)
+└── Disable legacy production paths
+
+P1
+├── Desktop packaging
+├── Adversarial security review (T-080)
+├── Native integration tests
+└── Platform build verification
+
+OPEN BLOCKER
+└── B-010 Physical WAN validation   PHYSICAL WAN VERIFIED — NOT TESTED
+
+DEFERRED
+└── T-052 Layer splitting
+```
 
 Status values: `BACKLOG` | `READY` | `IN_PROGRESS` | `BLOCKED` | `DONE` | `CANCELLED`
 
@@ -34,12 +63,14 @@ Status values: `BACKLOG` | `READY` | `IN_PROGRESS` | `BLOCKED` | `DONE` | `CANCE
 | ID | Description | Priority | Deps | Owner | Status | Acceptance | Tests | Affected |
 |----|-------------|----------|------|-------|--------|------------|-------|----------|
 | T-020 | Persistent Ed25519 identity on disk | P0 | T-010 | P2P | **DONE** | Same key across restarts | Roundtrip load/save | security, daemon |
-| T-021 | Replace in-memory swarm with real QUIC transport | P0 | T-010, T-011 | P2P | **DONE** | Two/three processes bind/dial; signed HELLO; gossip; failure | `community-network` tests + `scripts/mesh-three-peer-test.sh` | `community-network`, daemon |
+| T-021 | Real QUIC mesh (replace in-memory swarm) | P0 | T-010, T-011 | P2P | **DONE** | Two/three processes bind/dial; signed HELLO; gossip; failure | `community-network` tests + `scripts/mesh-three-peer-test.sh` | `community-network`, daemon |
 | T-022 | LAN discovery (mDNS/DNS-SD) | P1 | T-021 | P2P | **PARTIAL** | Optional LAN optimization; not a WAN gate | Desktop mDNS adapter; physical LAN **NOT TESTED** | network, daemon |
 | T-023 | Optional NAT relay (forward-only, never authority) | P0 | T-021, ADR-0012 | P2P | **PARTIAL** | Opaque UDP forwarder; mesh works without it | `std_relay_forwards_opaque_bytes` **PROCESS VERIFIED**; WAN relay **NOT TESTED** | `community-network` relay + `community-relay` bin |
 | T-024 | Heartbeat, stale drop, reconnect/backoff | P0 | T-021 | P2P | **DONE** | Peer leaves within timeout; mesh survives | `peer_disappear_mesh_survives` + three-daemon script | network |
 | T-025 | Capability + resource_report gossip | P0 | T-021, T-013 | P2P | **IN_PROGRESS** | Capabilities exchanged at handshake; resource-report on wire | Handshake tests | network, governor |
-| T-026 | Remove synthetic peers from UI path | P0 | T-021 | Native/UI | BACKLOG | Network panel shows only verified peers | Manual + e2e | web/Tauri UI |
+| T-026 | Remove synthetic peers from **legacy PWA** path | P1 | — | Native/UI | BACKLOG | PWA still has `buildInitialLocalNode`; native UI has none | Manual | `packages/web` |
+
+T-021 is complete at process/networking level. Native UI work (T-060 / T-070 / T-043) is allowed and expected.
 
 ---
 
@@ -59,9 +90,9 @@ Status values: `BACKLOG` | `READY` | `IN_PROGRESS` | `BLOCKED` | `DONE` | `CANCE
 | ID | Description | Priority | Deps | Owner | Status | Acceptance | Tests | Affected |
 |----|-------------|----------|------|-------|--------|------------|-------|----------|
 | T-040 | Llama.cpp via existing `llama-server` (worker-node b10632) | P0 | T-012 | AI Eng | **DONE** | Real tokens from GGUF | `remote_full_model_llama_tokens` | `community-runtime` |
-| T-041 | Stream + cancel API | P0 | T-040 | AI Eng | **PARTIAL** | Tokens stream on QUIC; cancel/worker-gone | `worker_disappear_fails_task` | runtime, network |
+| T-041 | Stream + cancel API | P0 | T-040 | AI Eng | **PARTIAL** | Tokens stream on QUIC; UI still gets completed blob | `worker_disappear_fails_task` | runtime, network, Tauri |
 | T-042 | Delete/disable `generateModelResponse` production path | P0 | T-040 | AI Eng | **DONE** | Function throws; PWA submit does not stream templates | Source | `inferenceEngine.ts` |
-| T-043 | Wire native UI chat → mesh task → llama.cpp | P0 | T-040, T-042 | AI + Native | BACKLOG | Prompt → real tokens in native UI | E2E | UI, daemon |
+| T-043 | Wire native UI chat → mesh task → llama.cpp | P0 | T-040, T-042 | AI + Native | **IN_PROGRESS** | IPC `chat` → `community-app` → mesh; no TS engine | Failure path PROCESS VERIFIED; live GGUF in Tauri window **NOT VERIFIED**; live UI TOKEN_STREAM **missing** | UI, `community-app` |
 | T-044 | Reuse worker-node llama.cpp binaries | P1 | T-040 | AI Eng | **DONE** | Same `~/.community-ai/llama/b10632-*` layout | Engine start | worker-node → Rust |
 
 ---
@@ -72,8 +103,8 @@ Status values: `BACKLOG` | `READY` | `IN_PROGRESS` | `BLOCKED` | `DONE` | `CANCE
 |----|-------------|----------|------|-------|--------|------------|-------|----------|
 | T-050 | Task offer/accept/reject/stream/result/error | P0 | T-021, T-040 | P2P + AI | **DONE** | Remote peer executes full-model task | `remote_full_model_llama_tokens` | protocol, network |
 | T-051 | Reliable first: remote full-model (no layer-split) | P0 | T-050 | Senior | **DONE** | Originating peer picks a READY worker | Same | scheduler/network |
-| T-052 | Layer-split only when proven | P2 | T-051 | AI Eng | BACKLOG | Documented as experimental until stable | Benchmarks | runtime |
-| T-053 | Failure: worker gone → originator reassigns A→C | P0 | T-050 | P2P | **PARTIAL** | Detect death; retry next eligible peer (no global scheduler) | `worker_disappear_fails_task`, `reassign_tries_next_peer_on_failed_result`, `reassign_skip_rejecting_peer_then_llama` | network |
+| T-052 | Layer-split only when proven | P2 | T-119 | AI Eng | **DEFERRED** | Forbidden until physical WAN full-model evidence | — | runtime |
+| T-053 | Failure: worker gone → originator reassigns A→C | P0 | T-050 | P2P | **PARTIAL** | Detect death; retry next eligible peer (no global scheduler) | `reassign_*`; native task attempts recorded on failure | network, `community-app` |
 
 ---
 
@@ -81,12 +112,15 @@ Status values: `BACKLOG` | `READY` | `IN_PROGRESS` | `BLOCKED` | `DONE` | `CANCE
 
 | ID | Description | Priority | Deps | Owner | Status | Acceptance | Tests | Affected |
 |----|-------------|----------|------|-------|--------|------------|-------|----------|
-| T-060 | Tauri 2 Linux desktop shell (no Chrome dep) | P0 | T-021 | Native | **IN_PROGRESS** | API in `community-app`; Tauri scaffold in `apps/desktop` | `app_starts_without_browser`; Tauri window **NOT BUILT** | `community-app`, `apps/desktop` |
-| T-061 | Windows + macOS Tauri packages | P1 | T-060 | Native | BACKLOG | Installers build in CI | Build | desktop |
-| T-062 | Android: Rust `.so` + real JNI + foreground service | P0 | T-021, T-040 | Native | BACKLOG | Native activity uses core; WebView optional | Emulator test | `platform/android` |
-| T-063 | iOS: XCFramework + minimal SwiftUI shell | P1 | T-021 | Native | BACKLOG | Builds; discovery constrained documented | Device/sim | `platform/ios` |
+| T-060 | Tauri 2 Linux desktop shell (no Chrome dep) | P0 | T-021 | Native | **IN_PROGRESS** | Chat/Peers/Models/Tasks/Network/Settings over Rust IPC | `community-app` tests; window BUILD/RUNTIME separately | `community-app`, `apps/desktop` |
+| T-061 | Windows + macOS Tauri packages | P1 | T-060 | Native | BACKLOG | Each OS: BUILD / RUNTIME / PHYSICAL recorded separately | Build | desktop |
+| T-062 | Android: Rust `.so` + real JNI + foreground service | P0 | T-021, T-040 | Native | BACKLOG | Not claimed until BUILD+RUNTIME+P2P+INFERENCE | Emulator test | `platform/android` |
+| T-063 | iOS: XCFramework + minimal SwiftUI shell | P1 | T-021 | Native | BACKLOG | Same as Android — **NOT PHYSICALLY TESTED** | Device/sim | `platform/ios` |
 | T-064 | Fix systemd/launchd CLI flags | P0 | T-021 | Native | BACKLOG | Units start daemon successfully | Install test | linux/macos |
 | T-065 | Retire Chrome `launch-app.sh` as primary | P1 | T-060 | Manager | BACKLOG | README points to native app | Doc | dist/, README |
+| T-070 | UI binds only to real Rust peer/resource/model/task state | P0 | T-021 | Native/UI | **IN_PROGRESS** | Matrix in `docs/testing/NATIVE_UI_STATE.md`; no fake peers/CPU/READY | `peers_view_tracks_*`, `chat_without_ready_worker_*` | `community-app`, desktop |
+
+T-070 is **not** UI cosmetics. It is exclusive binding to Rust mesh/runtime state.
 
 ---
 
@@ -94,14 +128,13 @@ Status values: `BACKLOG` | `READY` | `IN_PROGRESS` | `BLOCKED` | `DONE` | `CANCE
 
 | ID | Description | Priority | Status |
 |----|-------------|----------|--------|
-| T-070 | UI binds only to real peer/resource/model state | P0 | BACKLOG |
 | T-080 | Adversarial security review | P1 | BACKLOG |
 | T-090 | Three-node reproducible mesh + inference lab | P0 | BACKLOG |
 | T-100 | Production installers + signed APK | P1 | BACKLOG |
 
 ---
 
-## Phase 3 — WAN-first P2P (current)
+## Phase 3 — WAN-first P2P (frozen except validation)
 
 > Community AI is designed for decentralized Internet-wide peer-to-peer operation. LAN discovery is an optimization, not the architectural foundation.
 
@@ -116,7 +149,7 @@ Status values: `BACKLOG` | `READY` | `IN_PROGRESS` | `BLOCKED` | `DONE` | `CANCE
 | T-116 | Hostile-Internet limits (skew, replay, size, rate, peers, tasks) | P0 | T-021 | P2P | **PARTIAL** | Documented + enforced locally | `stale_timestamp_is_rejected` | protocol, network |
 | T-117 | RTT / local worker preference | P1 | T-024 | P2P | **PARTIAL** | Ping/pong RTT on snapshots | process | network |
 | T-118 | Native `community-app` API | P0 | T-021 | Native | **DONE** (process) | Start mesh without browser | `app_starts_without_browser` | `community-app` |
-| T-119 | Physical WAN A↔B tokens | P0 | T-112, T-040 | QA | **NOT TESTED** | Two public networks, real GGUF tokens | — | — |
+| T-119 | Physical WAN A↔B tokens | P0 | T-112, T-040 | QA | **NOT TESTED** | Two public networks, real GGUF tokens; existing harness only | — | **Do not redesign network to “unblock”** |
 | T-120 | WAN originator/worker harness + connection_mode | P0 | T-040 | P2P | **DONE** (process) | `--mode originator\|worker`; DIRECT vs RELAY visible; never self-stamps WAN | `wan-inference-harness.sh`, `two_peers_quic_through_opaque_relay` | daemon, network |
 | T-121 | Hostile-Internet task/origin checks | P0 | T-116 | P2P | **DONE** (process) | Spoof origin, oversized prompt, malformed task | `spoofed_origin_id_is_rejected`, `oversized_and_malformed_tasks_rejected` | network |
 
@@ -126,6 +159,8 @@ Do **not** mark T-119 DONE without Internet evidence.
 
 ## Assignment gate
 
-**No agent may start T-026 / T-070 (UI cosmetics) before T-021 lands.**  
-**Layer-split (T-052) is forbidden until remote full-model is reliable (T-050).**  
-**Do not claim “P2P complete” without T-021 + process-level tests. Physical LAN is still NOT TESTED. WAN PHYSICAL TEST — NOT TESTED.**
+**T-021 (real QUIC mesh) has landed.** Native application work does not wait on a second networking rewrite.  
+**Network freeze:** do not start another discovery/relay/protocol redesign while B-010 is only awaiting two ISPs.  
+**Layer-split (T-052) is deferred until physical WAN full-model evidence (T-119).**  
+**PHYSICAL WAN VERIFIED remains NOT TESTED** until two public networks are used.  
+**UI must never fabricate peers, models, tokens, or resource graphs.**

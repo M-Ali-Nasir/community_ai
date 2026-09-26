@@ -673,6 +673,10 @@ impl MeshSwarm {
         ranked.into_iter().map(|(_, id)| id).collect()
     }
 
+    pub async fn local_profile(&self) -> CapabilityProfile {
+        self.inner.profile.read().await.clone()
+    }
+
     pub async fn advertised_endpoints(&self) -> Vec<NetEndpoint> {
         self.inner.endpoints.read().await.clone()
     }

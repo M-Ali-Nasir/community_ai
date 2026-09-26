@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "identifier": "ai.community.desktop",
   "build": {
-    "frontendDist": ".."
+    "frontendDist": "../frontend"
   },
   "app": {
     "windows": [

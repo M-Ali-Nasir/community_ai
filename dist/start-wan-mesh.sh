@@ -1,9 +1,21 @@
 #!/usr/bin/env bash
+# LEGACY / DEPRECATED — NOT PART OF THE PRODUCTION ARCHITECTURE.
+#
+# This script starts the TypeScript coordinator + cloudflared tunnel + Chrome
+# launcher. It is NOT the WAN-first QUIC mesh. Do not wire the Tauri native
+# app to it. Production WAN tests use:
+#   scripts/wan-inference-harness.sh
+#   community-daemon --mode originator|worker
+#
 set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export PATH=$PATH:$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node 2>/dev/null | tail -n 1)/bin:/usr/local/bin:/usr/bin
 
+echo "=========================================================="
+echo " LEGACY / DEPRECATED — TypeScript coordinator + cloudflared"
+echo " This is NOT the production QUIC mesh. Native app must not"
+echo " depend on this script. WAN tests: scripts/wan-inference-harness.sh"
 echo "=========================================================="
 echo " 🌐 Starting Community AI Global WAN Decentralized Mesh"
 echo "=========================================================="
