@@ -12,6 +12,7 @@ community-security.workspace = true
 community-network.workspace = true
 community-runtime.workspace = true
 community-governor.workspace = true
+community-storage.workspace = true
 tokio = { workspace = true, features = ["full"] }
 serde.workspace = true
 serde_json.workspace = true

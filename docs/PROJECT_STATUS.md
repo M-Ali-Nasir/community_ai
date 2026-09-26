@@ -80,8 +80,9 @@ Eventually each mobile OS needs BUILD / RUNTIME / P2P / INFERENCE verified. Shar
 1. **Legacy TypeScript hub / worker-node / `start-wan-mesh.sh`** — LEGACY / DEPRECATED. Not the production mesh.
 2. **Rust core:** Ed25519, `quinn` QUIC, optional mDNS/STUN/relay — **frozen** pending WAN evidence.
 3. **Native API:** `community-app` views for peers/network/models/tasks/chat. No CPU/memory graphs (no honest UI source yet).
-4. **Chat:** Tauri `chat` → mesh → llama.cpp. Live window GGUF **NOT VERIFIED**. Live UI token stream **missing** (T-043). Failure → `TASK_ERROR` / `TASK_TIMEOUT`.
+4. **Chat:** Tauri `chat` → mesh → llama.cpp. Live window GGUF **NOT VERIFIED**. Live UI token stream **missing** (T-043). Failure → `TASK_ERROR` / `TASK_TIMEOUT`. Conversations persist in peer-local SQLite (ADR-0013); **not** a central history.
 5. **WAN:** `PHYSICAL WAN VERIFIED — NOT TESTED`.
+6. **Storage:** local SQLite + BLAKE3 objects + signed events. P2P storage replication **not implemented**. Wallet/training **not implemented**.
 
 ---
 
@@ -90,7 +91,7 @@ Eventually each mobile OS needs BUILD / RUNTIME / P2P / INFERENCE verified. Shar
 | Phase | Name | Status |
 |-------|------|--------|
 | 0 | Audit | **DONE** |
-| 1 | Architecture | **LOCKED** — ADR-0011 + ADR-0012 |
+| 1 | Architecture | **LOCKED** — ADR-0011 + ADR-0012 + ADR-0013 |
 | 2 | Real P2P | **PROCESS VERIFIED** — physical LAN **NOT TESTED** |
 | 3 | WAN / Stage 1 | Architecture **IMPLEMENTED**; physical WAN **NOT TESTED**; **network frozen** |
 | 4 | Real inference | **PROCESS VERIFIED** on mesh; native chat **IN PROGRESS** |
@@ -114,6 +115,7 @@ Eventually each mobile OS needs BUILD / RUNTIME / P2P / INFERENCE verified. Shar
 | Artifact | Path |
 |----------|------|
 | Native UI state matrix | `docs/testing/NATIVE_UI_STATE.md` |
+| Storage architecture | `docs/architecture/STORAGE.md` |
 | WAN validation | `docs/testing/WAN_VALIDATION.md` |
 | WAN harness | `scripts/wan-inference-harness.sh` |
 | Task board | `docs/TASK_BOARD.md` |

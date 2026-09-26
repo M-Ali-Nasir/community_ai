@@ -8,6 +8,7 @@ Phase artifacts live under `docs/`:
 | Implementation matrix | [docs/IMPLEMENTATION_MATRIX.md](docs/IMPLEMENTATION_MATRIX.md) |
 | Task board | [docs/TASK_BOARD.md](docs/TASK_BOARD.md) |
 | Architecture | [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) |
+| Storage | [docs/architecture/STORAGE.md](docs/architecture/STORAGE.md) |
 | Decisions (ADRs) | [docs/decisions/DECISIONS.md](docs/decisions/DECISIONS.md) |
 | Blockers | [docs/BLOCKERS.md](docs/BLOCKERS.md) |
 | WAN validation | [docs/testing/WAN_VALIDATION.md](docs/testing/WAN_VALIDATION.md) |

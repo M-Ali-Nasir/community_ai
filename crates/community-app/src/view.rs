@@ -1,6 +1,6 @@
 //! Serializable views for native UI. Values come from the Rust mesh — never invented.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use community_network::{ConnectionReport, EvidenceClass, InferenceOutcome, PeerSnapshot, PeerState};
 use community_protocol::{EndpointKind, ModelAdvertisement, ModelReadyState, NetEndpoint};
@@ -177,7 +177,7 @@ fn evidence_label(e: EvidenceClass) -> String {
     .into()
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskAttemptView {
     pub attempt: u32,
     pub worker: String,

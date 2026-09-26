@@ -12,6 +12,10 @@ use community_network::{InferenceOutcome, MeshConfig, MeshSwarm};
 use community_protocol::*;
 use community_runtime::InferenceService;
 use community_security::NodeIdentity;
+use community_storage::{
+    default_storage_root, ConversationRecord, GenerationRecord, Lifecycle, MessageRecord,
+    MessageRole, Storage, TaskRecord, TokenAccumulator,
+};
 use tokio::sync::Mutex;
 
 pub use view::*;
@@ -26,6 +30,8 @@ pub struct AppOptions {
     pub relay: Option<SocketAddr>,
     pub model: Option<PathBuf>,
     pub model_id: String,
+    /// Peer-local storage root (SQLite + objects). Not a network path.
+    pub storage_dir: PathBuf,
     /// Faster mesh timeouts for process tests. Production stays `false`.
     pub test_mesh: bool,
 }
@@ -46,6 +52,7 @@ impl AppOptions {
             relay: None,
             model: None,
             model_id: "local-gguf".into(),
+            storage_dir: default_storage_root(),
             test_mesh: false,
         }
     }
@@ -57,7 +64,8 @@ pub struct CommunityApp {
     pub swarm: MeshSwarm,
     model_id: String,
     model_path: Option<PathBuf>,
-    tasks: Mutex<Vec<TaskRecordView>>,
+    storage: Storage,
+    active_conversation: Mutex<Option<String>>,
 }
 
 impl CommunityApp {
@@ -140,12 +148,14 @@ impl CommunityApp {
                 tracing::warn!("bootstrap dial {p} failed: {e}");
             }
         }
+        let storage = Storage::open(&opts.storage_dir, identity.clone())?;
         Ok(Self {
             identity,
             swarm,
             model_id: opts.model_id,
             model_path,
-            tasks: Mutex::new(Vec::new()),
+            storage,
+            active_conversation: Mutex::new(None),
         })
     }
 
@@ -216,7 +226,82 @@ impl CommunityApp {
     }
 
     pub async fn tasks_view(&self) -> Vec<TaskRecordView> {
-        self.tasks.lock().await.clone()
+        match self.storage.get_task_history() {
+            Ok(rows) => rows.into_iter().map(task_view_from_record).collect(),
+            Err(e) => {
+                tracing::error!("task history: {e}");
+                vec![]
+            }
+        }
+    }
+
+    pub fn list_conversations(&self) -> anyhow::Result<Vec<ConversationRecord>> {
+        Ok(self.storage.list_conversations()?)
+    }
+
+    pub fn create_conversation(&self, title: &str) -> anyhow::Result<ConversationRecord> {
+        Ok(self.storage.create_conversation(title)?)
+    }
+
+    pub fn get_conversation(&self, id: &str) -> anyhow::Result<Option<ConversationRecord>> {
+        Ok(self.storage.get_conversation(id)?)
+    }
+
+    pub fn get_messages(&self, conversation_id: &str) -> anyhow::Result<Vec<MessageRecord>> {
+        Ok(self.storage.get_messages(conversation_id)?)
+    }
+
+    pub fn append_message(
+        &self,
+        conversation_id: &str,
+        role: MessageRole,
+        content: &str,
+        status: Lifecycle,
+    ) -> anyhow::Result<MessageRecord> {
+        Ok(self.storage.append_message(
+            conversation_id,
+            role,
+            content,
+            status,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )?)
+    }
+
+    pub fn archive_conversation(&self, id: &str) -> anyhow::Result<()> {
+        Ok(self.storage.archive_conversation(id)?)
+    }
+
+    pub fn get_task_history(&self) -> anyhow::Result<Vec<TaskRecord>> {
+        Ok(self.storage.get_task_history()?)
+    }
+
+    pub fn get_generation_metadata(
+        &self,
+        message_id: &str,
+    ) -> anyhow::Result<Option<GenerationRecord>> {
+        Ok(self.storage.get_generation_metadata(message_id)?)
+    }
+
+    pub async fn set_active_conversation(&self, id: &str) -> anyhow::Result<()> {
+        if self.storage.get_conversation(id)?.is_none() {
+            anyhow::bail!("conversation not found");
+        }
+        *self.active_conversation.lock().await = Some(id.to_string());
+        Ok(())
+    }
+
+    async fn ensure_conversation(&self) -> anyhow::Result<String> {
+        let mut active = self.active_conversation.lock().await;
+        if let Some(id) = active.as_ref() {
+            return Ok(id.clone());
+        }
+        let rec = self.storage.create_conversation("Chat")?;
+        *active = Some(rec.conversation_id.clone());
+        Ok(rec.conversation_id)
     }
 
     pub async fn dial_peer(&self, addr: &str) -> anyhow::Result<String> {
@@ -227,34 +312,52 @@ impl CommunityApp {
 
     /// Originator chat path: real mesh task → llama.cpp tokens. No templates.
     /// QUIC TOKEN_STREAM is collected in the core; the UI currently receives the completed result.
+    /// User/assistant text is persisted locally; nothing is auto-replicated.
     pub async fn chat(&self, prompt: &str) -> anyhow::Result<ChatResultView> {
+        let conv_id = self.ensure_conversation().await?;
         let task_id = format!("ui-{}", chrono_like_id());
         let preview: String = prompt.chars().take(80).collect();
-        {
-            let mut tasks = self.tasks.lock().await;
-            tasks.insert(
-                0,
-                TaskRecordView {
-                    task_id: task_id.clone(),
-                    model_id: self.model_id.clone(),
-                    prompt_preview: preview.clone(),
-                    status: "TASK_OFFER".into(),
-                    attempts: vec![],
-                    executor: None,
-                    connection_mode: None,
-                    error: None,
-                },
-            );
-            if tasks.len() > 50 {
-                tasks.truncate(50);
-            }
-        }
+
+        self.storage.append_message(
+            &conv_id,
+            MessageRole::User,
+            prompt,
+            Lifecycle::Completed,
+            Some(&task_id),
+            None,
+            None,
+            None,
+            None,
+        )?;
+
+        self.persist_task(
+            &task_id,
+            &conv_id,
+            &preview,
+            Lifecycle::InProgress,
+            "TASK_OFFER",
+            0,
+            None,
+            None,
+            None,
+            None,
+        )?;
 
         let workers = self.swarm.select_workers_for_model(&self.model_id).await;
         if workers.is_empty() {
             let err = "no READY peer advertised this model";
-            self.update_task_failure(&task_id, "TASK_ERROR", err, vec![])
-                .await;
+            self.persist_task(
+                &task_id,
+                &conv_id,
+                &preview,
+                Lifecycle::Failed,
+                "TASK_ERROR",
+                0,
+                Some(err),
+                None,
+                None,
+                None,
+            )?;
             anyhow::bail!("{err}");
         }
 
@@ -277,7 +380,18 @@ impl CommunityApp {
             offer.executor_id = Some(worker.clone());
             offer.created_unix_ms = chrono_unix_ms();
 
-            self.set_task_status(&task_id, "TASK_OFFER").await;
+            self.persist_task(
+                &task_id,
+                &conv_id,
+                &preview,
+                Lifecycle::InProgress,
+                "TASK_OFFER",
+                attempts.len() as i64,
+                None,
+                Some(&attempts),
+                None,
+                None,
+            )?;
             match self.swarm.collect_inference_report(worker, offer).await {
                 Ok(outcome) => {
                     attempts.push(TaskAttemptView {
@@ -285,9 +399,55 @@ impl CommunityApp {
                         worker: worker.to_string(),
                         result: "SUCCESS".into(),
                     });
+                    let mut acc = TokenAccumulator::new();
+                    acc.extend_from(outcome.tokens.iter().cloned());
                     let mut view = ChatResultView::from_outcome(&self.model_id, outcome);
+                    if view.text.is_empty() {
+                        view.text = acc.finalize_text();
+                    }
                     view.attempts = attempts.clone();
-                    self.update_task_success(&task_id, &view).await;
+                    let completion_tokens = if view.tokens.is_empty() {
+                        None
+                    } else {
+                        Some(view.tokens.len() as i64)
+                    };
+                    let asst = self.storage.append_message(
+                        &conv_id,
+                        MessageRole::Assistant,
+                        &view.text,
+                        Lifecycle::Completed,
+                        Some(&task_id),
+                        Some(&self.model_id),
+                        None,
+                        completion_tokens,
+                        None,
+                    )?;
+                    self.storage.record_generation(&GenerationRecord {
+                        message_id: asst.message_id,
+                        task_id: Some(task_id.clone()),
+                        model_id: Some(self.model_id.clone()),
+                        model_version: None,
+                        ttft_ms: view.time_to_first_token_ms.map(|v| v as i64),
+                        duration_ms: Some(view.total_ms as i64),
+                        prompt_tokens: None,
+                        completion_tokens,
+                        total_tokens: completion_tokens,
+                        worker_count: Some(attempts.len() as i64),
+                        connection_mode: Some(view.connection_mode.clone()),
+                        status: Lifecycle::Completed.as_str().into(),
+                    })?;
+                    self.persist_task(
+                        &task_id,
+                        &conv_id,
+                        &preview,
+                        Lifecycle::Completed,
+                        "TASK_RESULT",
+                        attempts.len() as i64,
+                        None,
+                        Some(&attempts),
+                        Some(&view.executor),
+                        Some(&view.connection_mode),
+                    )?;
                     return Ok(view);
                 }
                 Err(e) => {
@@ -298,48 +458,76 @@ impl CommunityApp {
                         result: format!("FAILED: {last_err}"),
                     });
                     let status = task_status_from_error(&last_err);
-                    self.update_task_failure(&task_id, status, &last_err, attempts.clone())
-                        .await;
+                    self.persist_task(
+                        &task_id,
+                        &conv_id,
+                        &preview,
+                        Lifecycle::Failed,
+                        status,
+                        attempts.len() as i64,
+                        Some(&last_err),
+                        Some(&attempts),
+                        None,
+                        None,
+                    )?;
                 }
             }
         }
         let status = task_status_from_error(&last_err);
-        self.update_task_failure(&task_id, status, &last_err, attempts)
-            .await;
+        self.persist_task(
+            &task_id,
+            &conv_id,
+            &preview,
+            Lifecycle::Failed,
+            status,
+            attempts.len() as i64,
+            Some(&last_err),
+            Some(&attempts),
+            None,
+            None,
+        )?;
         anyhow::bail!("{last_err}")
     }
 
-    async fn set_task_status(&self, task_id: &str, status: &str) {
-        let mut tasks = self.tasks.lock().await;
-        if let Some(t) = tasks.iter_mut().find(|t| t.task_id == task_id) {
-            t.status = status.into();
-        }
-    }
-
-    async fn update_task_success(&self, task_id: &str, view: &ChatResultView) {
-        let mut tasks = self.tasks.lock().await;
-        if let Some(t) = tasks.iter_mut().find(|t| t.task_id == task_id) {
-            t.status = "TASK_RESULT".into();
-            t.attempts = view.attempts.clone();
-            t.executor = Some(view.executor.clone());
-            t.connection_mode = Some(view.connection_mode.clone());
-            t.error = None;
-        }
-    }
-
-    async fn update_task_failure(
+    fn persist_task(
         &self,
         task_id: &str,
-        status: &str,
-        err: &str,
-        attempts: Vec<TaskAttemptView>,
-    ) {
-        let mut tasks = self.tasks.lock().await;
-        if let Some(t) = tasks.iter_mut().find(|t| t.task_id == task_id) {
-            t.status = status.into();
-            t.error = Some(err.to_string());
-            t.attempts = attempts;
-        }
+        conversation_id: &str,
+        preview: &str,
+        lifecycle: Lifecycle,
+        mesh_status: &str,
+        attempt_count: i64,
+        error: Option<&str>,
+        attempts: Option<&[TaskAttemptView]>,
+        executor: Option<&str>,
+        connection_mode: Option<&str>,
+    ) -> anyhow::Result<()> {
+        let completed_at = if matches!(lifecycle, Lifecycle::Completed | Lifecycle::Failed) {
+            Some(community_storage::unix_ms())
+        } else {
+            None
+        };
+        let rec = TaskRecord {
+            task_id: task_id.into(),
+            origin_id: self.peer_id().to_string(),
+            model_id: Some(self.model_id.clone()),
+            model_version: None,
+            status: lifecycle.as_str().into(),
+            mesh_status: Some(mesh_status.into()),
+            created_at: community_storage::unix_ms(),
+            completed_at,
+            attempt_count,
+            error: error.map(|s| s.to_string()),
+            conversation_id: Some(conversation_id.into()),
+            prompt_preview: Some(preview.into()),
+            attempts_json: attempts
+                .map(|a| serde_json::to_string(a))
+                .transpose()?,
+            executor: executor.map(|s| s.to_string()),
+            connection_mode: connection_mode.map(|s| s.to_string()),
+        };
+        self.storage.record_task(&rec)?;
+        Ok(())
     }
 
     /// Kept for older call sites; prefer [`Self::peers_view`].
@@ -373,6 +561,24 @@ fn chrono_like_id() -> String {
     format!("{}", chrono_unix_ms())
 }
 
+fn task_view_from_record(rec: TaskRecord) -> TaskRecordView {
+    let attempts = rec
+        .attempts_json
+        .as_deref()
+        .and_then(|s| serde_json::from_str(s).ok())
+        .unwrap_or_default();
+    TaskRecordView {
+        task_id: rec.task_id,
+        model_id: rec.model_id.unwrap_or_default(),
+        prompt_preview: rec.prompt_preview.unwrap_or_default(),
+        status: rec.mesh_status.unwrap_or(rec.status),
+        attempts,
+        executor: rec.executor,
+        connection_mode: rec.connection_mode,
+        error: rec.error,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -388,6 +594,11 @@ mod tests {
         opts.identity_path = std::env::temp_dir().join(format!(
             "community-app-{name}-{}.key",
             std::process::id()
+        ));
+        opts.storage_dir = std::env::temp_dir().join(format!(
+            "community-store-{name}-{}-{}",
+            std::process::id(),
+            chrono_unix_ms()
         ));
         opts
     }
@@ -473,6 +684,42 @@ mod tests {
         assert_eq!(tasks[0].status, "TASK_ERROR");
         assert!(tasks[0].error.as_ref().unwrap().contains("no READY peer"));
         app.swarm.shutdown();
+    }
+
+    #[tokio::test]
+    async fn chat_persists_locally_and_survives_restart() {
+        let opts = test_opts("persist-a");
+        let storage_dir = opts.storage_dir.clone();
+        let identity_path = opts.identity_path.clone();
+        let conv_id;
+        {
+            let app = CommunityApp::start(opts).await.expect("start");
+            let err = app.chat("remember this").await.expect_err("no worker");
+            assert!(err.to_string().contains("no READY peer"));
+            let convs = app.list_conversations().expect("convs");
+            assert_eq!(convs.len(), 1);
+            conv_id = convs[0].conversation_id.clone();
+            let msgs = app.get_messages(&conv_id).expect("msgs");
+            assert_eq!(msgs.len(), 1);
+            assert_eq!(msgs[0].role, "user");
+            assert_eq!(msgs[0].content, "remember this");
+            assert!(msgs.iter().all(|m| m.role != "assistant"));
+            let tasks = app.tasks_view().await;
+            assert_eq!(tasks[0].status, "TASK_ERROR");
+            let replicable = app.storage.export_replicable_events().unwrap();
+            assert!(replicable.is_empty());
+            app.swarm.shutdown();
+        }
+        let mut opts2 = test_opts("persist-b");
+        opts2.storage_dir = storage_dir;
+        opts2.identity_path = identity_path;
+        let app2 = CommunityApp::start(opts2).await.expect("restart");
+        let msgs = app2.get_messages(&conv_id).expect("reload");
+        assert_eq!(msgs[0].content, "remember this");
+        let hist = app2.get_task_history().expect("tasks");
+        assert_eq!(hist[0].status, "failed");
+        assert_ne!(hist[0].status, "completed");
+        app2.swarm.shutdown();
     }
 
     #[test]
