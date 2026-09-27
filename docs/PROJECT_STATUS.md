@@ -58,17 +58,17 @@ Do not collapse this into “desktop supported.”
 
 | OS | BUILD VERIFIED | RUNTIME VERIFIED | PHYSICAL TESTED |
 |----|----------------|------------------|-----------------|
-| Linux | **NOT TESTED** (Tauri CLI/webkit not confirmed this gate) | **NOT TESTED** | **NOT TESTED** |
-| Windows | **NOT TESTED** | **NOT TESTED** | **NOT TESTED** |
+| Linux | **YES** (AppImage `1.0.0`, see `docs/release-builds.md`) | **Launch YES** (process + WebKit + local SQLite). Interactive page clicks **NOT TESTED** (Wayland screenshot denied) | **NOT TESTED** |
+| Windows | **YES** (NSIS `Community AI_1.0.0_x64-setup.exe`) | **NOT TESTED** (no Windows host) | **NOT TESTED** |
 | macOS | **NOT TESTED** | **NOT TESTED** | **NOT TESTED** |
 
-Native UI + IPC + Rust API exist in source. That is **IMPLEMENTED**, not BUILD/RUNTIME verified.
+Native UI + IPC + Rust API exist in source. Linux/Windows **BUILD** is recorded in `docs/release-builds.md`. Do not collapse BUILD into INSTALL/RUNTIME.
 
 ## Mobile status
 
 | OS | Status |
 |----|--------|
-| Android | **NOT PHYSICALLY TESTED** — do not claim support |
+| Android | **BUILD YES** (ARM64 TEST APK). **INSTALL/RUNTIME NOT TESTED** (no `adb` device). Local llama.cpp spawn **not claimed**. See `docs/release-builds.md`. |
 | iOS | **NOT PHYSICALLY TESTED** — do not claim support |
 
 Eventually each mobile OS needs BUILD / RUNTIME / P2P / INFERENCE verified. Shared Rust core stays reusable.
