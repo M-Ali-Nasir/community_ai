@@ -10,8 +10,10 @@
     "windows": [
       {
         "title": "Community AI",
-        "width": 1180,
-        "height": 720
+        "width": 1280,
+        "height": 800,
+        "minWidth": 360,
+        "minHeight": 520
       }
     ],
     "security": {

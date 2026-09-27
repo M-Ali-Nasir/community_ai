@@ -2,135 +2,181 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Community AI</title>
     <style>
       :root {
         --bg: #12100e;
-        --panel: #1c1814;
+        --sidebar: #161310;
+        --surface: #1c1814;
         --line: #3a322a;
         --text: #f2ebe3;
         --muted: #a89888;
-        --brand: #e86a17;
+        --accent: #e86a17;
         --ok: #3d9a6a;
         --warn: #c9a227;
         --bad: #c44b3c;
         --mono: "IBM Plex Mono", "SF Mono", ui-monospace, monospace;
         --sans: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+        --sidebar-w: 248px;
+        --chat-max: 46rem;
+        --header-h: 3.25rem;
+        --safe-b: env(safe-area-inset-bottom, 0px);
+        --safe-t: env(safe-area-inset-top, 0px);
+        --vvh: 100dvh;
       }
       * { box-sizing: border-box; }
-      html, body { height: 100%; margin: 0; }
+      html, body {
+        margin: 0;
+        height: var(--vvh);
+        max-height: var(--vvh);
+        overflow: hidden;
+      }
       body {
         font-family: var(--sans);
-        background:
-          radial-gradient(1200px 600px at 10% -10%, #2a1c12 0%, transparent 55%),
-          linear-gradient(180deg, #161310, var(--bg));
+        background: var(--bg);
         color: var(--text);
-        display: grid;
-        grid-template-rows: auto 1fr;
-      }
-      header {
         display: flex;
-        align-items: center;
-        gap: 1.25rem;
-        padding: 0.85rem 1.25rem;
-        border-bottom: 1px solid var(--line);
-        background: rgba(18, 16, 14, 0.85);
-        backdrop-filter: blur(8px);
+        flex-direction: row;
+        align-items: stretch;
+      }
+      body > .backdrop { position: fixed; }
+      button, input, textarea, select { font: inherit; color: inherit; }
+      button, a, input, textarea, select { touch-action: manipulation; }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      .skip {
+        position: absolute;
+        left: 0.75rem;
+        top: -3rem;
+        z-index: 80;
+        background: var(--surface);
+        padding: 0.4rem 0.6rem;
+        color: var(--text);
+        border-radius: 8px;
+      }
+      .skip:focus { top: 0.75rem; }
+      .backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(8, 6, 5, 0.55);
+        z-index: 30;
+        border: 0;
+      }
+      aside {
+        display: flex;
+        flex-direction: column;
+        flex: 0 0 var(--sidebar-w);
+        width: var(--sidebar-w);
+        background: var(--sidebar);
+        border-right: 1px solid var(--line);
+        min-height: 0;
+        min-width: 0;
+        height: 100%;
+        max-height: var(--vvh);
+        z-index: 40;
+        overflow: hidden;
+      }
+      .brand-block {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.4rem;
+        flex: 0 0 auto;
+        padding: calc(0.85rem + var(--safe-t)) 0.85rem 0.5rem 1rem;
       }
       .brand {
-        font-size: 1.35rem;
+        margin: 0;
+        font-size: 1.12rem;
         font-weight: 700;
         letter-spacing: -0.02em;
-        color: var(--brand);
-        margin: 0;
+        color: var(--accent);
       }
-      .wan-pill {
-        font-family: var(--mono);
+      .brand-sub {
+        margin: 0.2rem 0 0;
         font-size: 0.72rem;
-        color: var(--warn);
-        border: 1px solid #6a5620;
-        background: #2a230f;
-        padding: 0.28rem 0.55rem;
-        border-radius: 4px;
-      }
-      .peer-chip {
-        margin-left: auto;
-        font-family: var(--mono);
-        font-size: 0.75rem;
         color: var(--muted);
-        max-width: 40vw;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
       }
-      nav {
-        display: flex;
-        gap: 0.35rem;
-      }
-      nav button {
-        appearance: none;
-        border: 0;
-        background: transparent;
-        color: var(--muted);
-        padding: 0.45rem 0.7rem;
-        border-radius: 6px;
-        cursor: pointer;
-        font: inherit;
-      }
-      nav button.active, nav button:hover {
-        background: #2a221c;
-        color: var(--text);
-      }
-      main {
-        display: grid;
-        grid-template-columns: 1fr;
-        min-height: 0;
-      }
-      .panel {
+      .drawer-close {
         display: none;
+        appearance: none;
+        border: 1px solid var(--line);
+        background: transparent;
+        color: var(--text);
+        width: 2.6rem;
+        height: 2.6rem;
+        border-radius: 8px;
+        cursor: pointer;
+        flex: 0 0 auto;
+      }
+      #collapse-sidebar {
+        display: inline-flex;
+        appearance: none;
+        border: 1px solid var(--line);
+        background: transparent;
+        color: var(--text);
+        width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 8px;
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+      }
+      #new-chat {
+        margin: 0.15rem 0.85rem 0.7rem;
+        width: calc(100% - 1.7rem);
+        min-height: 2.75rem;
+        flex: 0 0 auto;
+      }
+      .conv-wrap {
+        flex: 1 1 0;
         min-height: 0;
-        padding: 1rem 1.25rem 1.5rem;
-        overflow: auto;
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding: 0 0.6rem 0.7rem;
+        border-bottom: 1px solid var(--line);
+        overscroll-behavior: contain;
       }
-      .panel.active { display: grid; gap: 1rem; }
-      .grid-2 {
-        display: grid;
-        grid-template-columns: 1.4fr 1fr;
-        gap: 1rem;
-        min-height: 0;
-      }
-      .grid-chat {
-        display: grid;
-        grid-template-columns: 220px 1.4fr 1fr;
-        gap: 1rem;
-        min-height: 0;
-      }
-      @media (max-width: 1100px) {
-        .grid-chat { grid-template-columns: 1fr; }
-      }
-      @media (max-width: 900px) {
-        .grid-2 { grid-template-columns: 1fr; }
-        .peer-chip { display: none; }
+      .section-label {
+        font-size: 0.68rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 0.3rem 0.4rem 0.45rem;
       }
       .hist-item {
         width: 100%;
         text-align: left;
         background: transparent;
         border: 1px solid transparent;
-        color: var(--text);
-        padding: 0.55rem 0.6rem;
+        padding: 0.55rem 0.55rem;
         border-radius: 8px;
         cursor: pointer;
-        font: inherit;
+        margin-bottom: 0.15rem;
+        min-height: 2.6rem;
       }
       .hist-item:hover, .hist-item.active {
-        background: #2a221c;
+        background: #241c18;
         border-color: var(--line);
       }
       .hist-item .t {
         display: block;
-        font-size: 0.9rem;
+        font-size: 0.88rem;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -138,119 +184,320 @@
       .hist-item .d {
         display: block;
         font-family: var(--mono);
+        font-size: 0.65rem;
+        color: var(--muted);
+        margin-top: 0.12rem;
+      }
+      nav {
+        display: flex;
+        flex-direction: column;
+        flex: 0 0 auto;
+        gap: 0.12rem;
+        padding: 0.55rem 0.6rem 0.4rem;
+      }
+      nav button {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        padding: 0.62rem 0.65rem;
+        border-radius: 8px;
+        cursor: pointer;
+        text-align: left;
+        min-height: 2.6rem;
+      }
+      nav button.active, nav button:hover { background: #241c18; color: var(--text); }
+      .aside-status {
+        flex: 0 0 auto;
+        padding: 0.55rem 0.85rem calc(0.85rem + var(--safe-b));
+        font-family: var(--mono);
         font-size: 0.68rem;
         color: var(--muted);
-        margin-top: 0.15rem;
+        border-top: 1px solid var(--line);
       }
-      .share-pill {
-        font-family: var(--mono);
-        font-size: 0.72rem;
-        padding: 0.28rem 0.55rem;
-        border-radius: 4px;
-        border: 1px solid var(--line);
-      }
-      label.field {
+      .workspace {
         display: grid;
-        gap: 0.3rem;
-        font-size: 0.85rem;
+        grid-template-rows: var(--header-h) minmax(0, 1fr);
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 0;
+        height: 100%;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0 0.8rem;
+        padding-top: var(--safe-t);
+        border-bottom: 1px solid var(--line);
+        background: #161310;
+        min-width: 0;
+      }
+      .icon-btn {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: transparent;
+        color: var(--text);
+        width: 2.6rem;
+        height: 2.6rem;
+        border-radius: 8px;
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+      }
+      #page-title {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .header-meta {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex: 0 0 auto;
+        max-width: 58%;
+      }
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--warn);
+        flex: 0 0 auto;
+      }
+      .status-dot.ok { background: var(--ok); }
+      .status-dot.bad { background: var(--bad); }
+      .pill {
+        font-family: var(--mono);
+        font-size: 0.68rem;
         color: var(--muted);
-        margin-top: 0.75rem;
+        border: 1px solid var(--line);
+        padding: 0.22rem 0.45rem;
+        border-radius: 999px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+      }
+      .pill.warn {
+        color: var(--warn);
+        border-color: #6a5620;
+        background: #2a230f;
+      }
+      main {
+        min-height: 0;
+        min-width: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
+      }
+      .panel { display: none; min-height: 100%; padding: 0.85rem; }
+      .panel.active { display: block; }
+      .panel-chat.active {
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) auto;
+        height: 100%;
+        padding: 0;
+      }
+      .chat-stage {
+        min-height: 0;
+        overflow: auto;
+        display: flex;
+        justify-content: center;
+        overscroll-behavior: contain;
+      }
+      .chat-log {
+        width: min(100%, var(--chat-max));
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        padding: 1.1rem 1rem 1.4rem;
+      }
+      .hero {
+        margin: auto;
+        text-align: center;
+        max-width: 26rem;
+        padding: 2rem 0.5rem;
+      }
+      .hero h3 {
+        margin: 0 0 0.4rem;
+        font-size: 1.35rem;
+        font-weight: 650;
+      }
+      .hero p { margin: 0; color: var(--muted); line-height: 1.45; }
+      .msg {
+        max-width: 100%;
+        line-height: 1.6;
+        font-size: 1rem;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .msg.user {
+        align-self: flex-end;
+        background: #2c1d14;
+        border: 1px solid #4a3224;
+        border-radius: 18px 18px 6px 18px;
+        padding: 0.7rem 0.9rem;
+        max-width: min(36rem, 92%);
+      }
+      .msg.assistant {
+        align-self: stretch;
+        padding: 0.15rem 0.1rem;
+      }
+      .msg.system {
+        align-self: center;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+      .msg.error {
+        align-self: stretch;
+        background: #2a1614;
+        border: 1px solid #6a3028;
+        color: #e8c4be;
+        border-radius: 10px;
+        padding: 0.7rem 0.85rem;
+      }
+      .generating {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .spinner {
+        width: 12px;
+        height: 12px;
+        border: 2px solid var(--line);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .composer-wrap {
+        display: flex;
+        justify-content: center;
+        padding: 0.55rem 0.85rem calc(0.7rem + var(--safe-b));
+        border-top: 1px solid var(--line);
+        background: #161310;
+      }
+      .composer-inner { width: min(100%, var(--chat-max)); min-width: 0; }
+      .composer {
+        display: flex;
+        gap: 0.45rem;
+        align-items: flex-end;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 0.4rem 0.4rem 0.4rem 0.7rem;
+        min-width: 0;
+      }
+      textarea {
+        flex: 1 1 auto;
+        width: auto;
+        min-width: 0;
+        background: transparent;
+        border: 0;
+        resize: none;
+        min-height: 2.5rem;
+        max-height: 10rem;
+        padding: 0.45rem 0;
+        line-height: 1.4;
+      }
+      #send {
+        flex: 0 0 auto;
+        flex-shrink: 0;
+        min-width: 4.5rem;
+        min-height: 2.75rem;
+      }
+      input:not([type="checkbox"]), select {
+        width: 100%;
+        background: #14110f;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0.7rem 0.8rem;
+        min-height: 2.7rem;
+      }
+      input[type="checkbox"] {
+        width: 1.15rem;
+        height: 1.15rem;
+        min-height: 0;
+        margin: 0;
+        flex: 0 0 auto;
+        accent-color: var(--accent);
+      }
+      label.field.check {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.65rem;
+      }
+      button.primary {
+        background: var(--accent);
+        color: #1a0f08;
+        border: 0;
+        border-radius: 12px;
+        padding: 0.65rem 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+        min-height: 2.6rem;
+      }
+      button.primary:disabled { opacity: 0.45; cursor: not-allowed; }
+      button.ghost {
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+        cursor: pointer;
+        min-height: 2.5rem;
       }
       .card {
-        background: var(--panel);
+        background: var(--surface);
         border: 1px solid var(--line);
-        border-radius: 10px;
+        border-radius: 12px;
         padding: 1rem;
-        min-height: 0;
+        min-width: 0;
       }
+      .page-stack { display: grid; gap: 0.85rem; max-width: 72rem; margin: 0 auto; }
       h2 {
         margin: 0 0 0.75rem;
-        font-size: 0.95rem;
+        font-size: 0.78rem;
         font-weight: 600;
         color: var(--muted);
         text-transform: uppercase;
         letter-spacing: 0.06em;
       }
-      .chat-log {
-        height: min(52vh, 420px);
-        overflow: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        margin-bottom: 0.75rem;
-      }
-      .bubble {
-        max-width: 92%;
-        padding: 0.7rem 0.85rem;
-        border-radius: 10px;
-        line-height: 1.45;
-        white-space: pre-wrap;
-      }
-      .bubble.user {
-        align-self: flex-end;
-        background: #3a2416;
-        border: 1px solid #5a3a22;
-      }
-      .bubble.assistant {
-        align-self: flex-start;
-        background: #201c18;
-        border: 1px solid var(--line);
-      }
-      .bubble.meta {
-        align-self: center;
-        font-family: var(--mono);
-        font-size: 0.75rem;
-        color: var(--muted);
-        background: transparent;
-        border: 0;
-        padding: 0.2rem;
-      }
-      .composer {
+      .grid-2 {
         display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 0.5rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.85rem;
       }
-      textarea, input {
-        width: 100%;
-        background: #14110f;
-        border: 1px solid var(--line);
-        color: var(--text);
-        border-radius: 8px;
-        padding: 0.7rem 0.8rem;
-        font: inherit;
-        resize: vertical;
-      }
-      button.primary {
-        background: var(--brand);
-        color: #1a0f08;
-        border: 0;
-        border-radius: 8px;
-        padding: 0.7rem 1rem;
-        font-weight: 700;
-        cursor: pointer;
-      }
-      button.primary:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.9rem;
-      }
+      .table-wrap { overflow: auto; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
       th, td {
         text-align: left;
-        padding: 0.45rem 0.35rem;
+        padding: 0.5rem 0.4rem;
         border-bottom: 1px solid var(--line);
         vertical-align: top;
       }
-      th { color: var(--muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
-      code, .mono { font-family: var(--mono); font-size: 0.8rem; }
-      .empty { color: var(--muted); font-size: 0.9rem; }
+      th {
+        color: var(--muted);
+        font-weight: 600;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+      }
+      .mono { font-family: var(--mono); font-size: 0.78rem; word-break: break-all; }
+      .empty, .loading { color: var(--muted); font-size: 0.9rem; line-height: 1.45; }
+      .err { color: #e8c4be; font-size: 0.9rem; line-height: 1.45; }
       .badge {
         display: inline-block;
         font-family: var(--mono);
-        font-size: 0.7rem;
+        font-size: 0.68rem;
         padding: 0.15rem 0.4rem;
         border-radius: 4px;
         border: 1px solid var(--line);
@@ -258,136 +505,269 @@
       .badge.ok { color: var(--ok); border-color: #2f6a4a; }
       .badge.warn { color: var(--warn); border-color: #6a5620; }
       .badge.bad { color: var(--bad); border-color: #6a3028; }
-      .note {
+      .note { font-size: 0.85rem; color: var(--muted); line-height: 1.45; overflow-wrap: anywhere; }
+      .row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+      .row > input { flex: 1 1 12rem; min-width: 0; }
+      label.field {
+        display: grid;
+        gap: 0.3rem;
         font-size: 0.85rem;
         color: var(--muted);
-        line-height: 1.4;
+        margin-top: 0.75rem;
       }
-      .row { display: flex; gap: 0.5rem; align-items: center; }
+      .check {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.55rem;
+        min-height: 2.6rem;
+      }
+      details.meta-box {
+        margin-top: 0.45rem;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: 7.2rem minmax(0, 1fr);
+        gap: 0.35rem 0.7rem;
+        font-size: 0.9rem;
+      }
+      .kv dt { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; margin: 0; }
+      .kv dd { margin: 0; min-width: 0; }
+
+      @media (max-width: 1099px) {
+        :root { --sidebar-w: 220px; }
+      }
+      @media (max-width: 899px) {
+        .grid-2 { grid-template-columns: 1fr; }
+        .pill.wide-only { display: none; }
+      }
+      @media (max-width: 767px), (max-height: 520px) {
+        body { display: block; }
+        .workspace { width: 100%; height: 100%; }
+        .icon-btn { display: inline-flex; }
+        #collapse-sidebar { display: none; }
+        .drawer-close { display: inline-flex; align-items: center; justify-content: center; }
+        aside {
+          position: fixed;
+          top: 0;
+          left: 0;
+          bottom: 0;
+          width: min(86vw, 20rem);
+          max-width: 20rem;
+          height: var(--vvh);
+          transform: translateX(-105%);
+          transition: transform 0.2s ease;
+          box-shadow: none;
+          padding-top: 0;
+        }
+        body.nav-open aside { transform: translateX(0); box-shadow: 8px 0 24px rgba(0,0,0,0.35); }
+        body.nav-open .backdrop { display: block; }
+        .composer { border-radius: 14px; padding: 0.45rem; }
+        #send { min-width: 3.25rem; min-height: 3rem; padding: 0.55rem 0.8rem; }
+        .header-meta { max-width: 48%; }
+      }
+      @media (max-width: 767px) {
+        table thead { display: none; }
+        table, tbody { display: block; width: 100%; }
+        tr {
+          display: block;
+          background: var(--surface);
+          border: 1px solid var(--line);
+          border-radius: 12px;
+          padding: 0.8rem 0.85rem;
+          margin-bottom: 0.7rem;
+        }
+        td {
+          display: grid;
+          grid-template-columns: 6.5rem minmax(0, 1fr);
+          gap: 0.35rem;
+          border: 0;
+          padding: 0.18rem 0;
+        }
+        td::before {
+          content: attr(data-label);
+          color: var(--muted);
+          font-size: 0.7rem;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+        .row { flex-direction: column; align-items: stretch; }
+        .row > input, .row > button { width: 100%; }
+      }
+      @media (min-width: 768px) and (min-height: 521px) {
+        body.sidebar-collapsed aside { display: none; }
+        body.sidebar-collapsed #nav-toggle { display: inline-flex; }
+      }
+      @media (min-width: 768px) and (max-width: 1023px) {
+        :root { --sidebar-w: 200px; }
+      }
+      @media (min-width: 1440px) {
+        :root { --sidebar-w: 260px; --chat-max: 48rem; }
+      }
+      @media (min-width: 768px) and (max-height: 700px) {
+        .brand-sub { display: none; }
+        nav button { min-height: 2.3rem; padding: 0.42rem 0.65rem; }
+        .conv-wrap .err { font-size: 0.8rem; }
+      }
+      @media (max-width: 767px) and (max-height: 500px) {
+        .hero { padding: 0.5rem; }
+        .hero h3 { font-size: 1.1rem; }
+        details.meta-box { display: none; }
+      }
     </style>
   </head>
   <body>
-    <header>
-      <h1 class="brand">Community AI</h1>
-      <nav>
-        <button data-panel="chat" class="active">Chat</button>
-        <button data-panel="peers">Peers</button>
-        <button data-panel="models">Models</button>
-        <button data-panel="tasks">Tasks</button>
-        <button data-panel="network">Network</button>
-        <button data-panel="settings">Settings</button>
+    <a class="skip" href="#prompt">Skip to message composer</a>
+    <button class="backdrop" id="nav-backdrop" type="button" aria-label="Close menu"></button>
+    <aside id="sidebar" aria-label="Application navigation">
+      <div class="brand-block">
+        <div>
+          <p class="brand">Community AI</p>
+          <p class="brand-sub">Decentralized peer network</p>
+        </div>
+        <button class="drawer-close" id="drawer-close" type="button" aria-label="Close menu">✕</button>
+        <button id="collapse-sidebar" type="button" aria-label="Collapse sidebar" title="Collapse sidebar">‹</button>
+      </div>
+      <button class="primary" id="new-chat" type="button">+ New Chat</button>
+      <div class="conv-wrap">
+        <div class="section-label" id="conv-heading">Recent</div>
+        <div id="conv-list" class="loading">Loading conversations…</div>
+      </div>
+      <nav aria-label="Sections">
+        <button type="button" data-panel="chat" class="active">Chat</button>
+        <button type="button" data-panel="peers">Peers</button>
+        <button type="button" data-panel="models">Models</button>
+        <button type="button" data-panel="tasks">Tasks</button>
+        <button type="button" data-panel="network">Network</button>
+        <button type="button" data-panel="settings">Settings</button>
       </nav>
-      <span class="share-pill" id="share-pill">sharing: …</span>
-      <span class="wan-pill" id="wan-pill">PHYSICAL WAN VERIFIED — NOT TESTED</span>
-      <span class="peer-chip mono" id="local-peer">peer: starting…</span>
-    </header>
-    <main>
-      <section class="panel active" id="panel-chat">
-        <div class="grid-chat">
-          <div class="card">
-            <h2>History</h2>
-            <button class="primary" id="new-chat" style="width:100%;margin-bottom:0.75rem">New chat</button>
-            <div id="conv-list" class="empty">No conversations yet.</div>
-          </div>
-          <div class="card">
-            <h2>Chat</h2>
+      <div class="aside-status" id="aside-status">Connecting…</div>
+    </aside>
+    <div class="workspace">
+      <header>
+        <button class="icon-btn" id="nav-toggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">☰</button>
+        <h1 id="page-title">Chat</h1>
+        <div class="header-meta">
+          <span class="status-dot" id="conn-dot" aria-hidden="true"></span>
+          <span class="pill" id="conn-pill">Connecting…</span>
+          <span class="pill wide-only" id="share-pill">sharing: …</span>
+        </div>
+      </header>
+      <main>
+        <section class="panel panel-chat active" id="panel-chat" aria-label="Chat">
+          <div class="chat-stage">
             <div class="chat-log" id="chat-log"></div>
-            <div class="composer">
-              <textarea id="prompt" rows="3" placeholder="Ask a peer that has a READY model…"></textarea>
-              <button class="primary" id="send">Send</button>
+          </div>
+          <div class="composer-wrap">
+            <div class="composer-inner">
+              <div id="chat-error" hidden class="msg error" style="margin-bottom:0.5rem"></div>
+              <form class="composer" id="composer-form">
+                <label class="visually-hidden" for="prompt">Message</label>
+                <textarea id="prompt" rows="1" placeholder="Ask something…" autocomplete="off" enterkeyhint="send"></textarea>
+                <button class="primary" id="send" type="submit" disabled>Send</button>
+              </form>
+              <details class="meta-box" id="last-meta-box">
+                <summary>Last inference details</summary>
+                <div id="last-meta">No completed inference yet. TOKEN_STREAM is collected in Rust; this window shows the finished result.</div>
+              </details>
             </div>
-            <p class="note">Messages are stored on this peer in SQLite. TOKEN_STREAM is collected in Rust; this window shows the completed result. No templates, no WebRTC, no TypeScript coordinator.</p>
           </div>
-          <div class="card">
-            <h2>Last inference</h2>
-            <div id="last-meta" class="empty">No task yet.</div>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="panel" id="panel-peers">
-        <div class="card">
-          <h2>Peers</h2>
-          <div id="peers-table" class="empty">Waiting for mesh…</div>
-        </div>
-      </section>
-
-      <section class="panel" id="panel-models">
-        <div class="card">
-          <h2>Models</h2>
-          <div id="models-table" class="empty">No model advertisements yet.</div>
-          <p class="note">Lifecycle states are from the Rust core. Timers never invent READY.</p>
-        </div>
-      </section>
-
-      <section class="panel" id="panel-tasks">
-        <div class="card">
-          <h2>Tasks</h2>
-          <div id="tasks-table" class="empty">No tasks originated from this UI yet.</div>
-        </div>
-      </section>
-
-      <section class="panel" id="panel-network">
-        <div class="card">
-          <h2>Network</h2>
-          <div id="network-view" class="empty">…</div>
-        </div>
-      </section>
-
-      <section class="panel" id="panel-settings">
-        <div class="grid-2">
-          <div class="card">
-            <h2>Resource participation</h2>
-            <p class="note">Opt-in. Default is PAUSED. Enforcement is in the Rust worker, not this form. Wallet/credits are not implemented.</p>
-            <label class="field">Sharing
-              <select id="share-enabled">
-                <option value="paused">PAUSED</option>
-                <option value="active">ACTIVE</option>
-              </select>
-            </label>
-            <label class="field">CPU limit (%)
-              <input id="share-cpu" type="number" min="0" max="100" />
-            </label>
-            <label class="field">Memory limit (MB)
-              <input id="share-mem" type="number" min="0" />
-            </label>
-            <label class="field" style="display:flex;flex-direction:row;align-items:center;gap:0.5rem">
-              <input id="share-idle" type="checkbox" />
-              Idle only
-            </label>
-            <label class="field" style="display:flex;flex-direction:row;align-items:center;gap:0.5rem">
-              <input id="share-gpu" type="checkbox" disabled />
-              GPU contribution
-            </label>
-            <p class="note" id="gpu-note">GPU: not detected — cannot enable.</p>
-            <button class="primary" id="share-save" style="margin-top:1rem">Save sharing</button>
-            <p class="mono" id="share-status" style="margin-top:0.75rem;color:var(--muted)"></p>
-            <div id="hw-view" class="note" style="margin-top:1rem"></div>
-            <p class="note" style="margin-top:1rem"><strong>Wallet</strong> <span class="badge warn" id="wallet-status">NOT IMPLEMENTED</span></p>
-          </div>
-          <div class="card">
-            <h2>Bootstrap dial</h2>
-            <p class="note">Dial a bootstrap peer by listen address. Identity and QUIC stay in the Rust core.</p>
-            <div class="row" style="margin-top:0.75rem">
-              <input id="dial-addr" placeholder="203.0.113.10:4433" />
-              <button class="primary" id="dial-btn">Dial</button>
+        <section class="panel" id="panel-peers">
+          <div class="page-stack">
+            <div class="card">
+              <h2>Peers</h2>
+              <div id="peers-table" class="loading">Loading peers…</div>
             </div>
-            <p class="mono" id="dial-status" style="margin-top:0.75rem;color:var(--muted)"></p>
           </div>
-        </div>
-      </section>
-    </main>
-
+        </section>
+        <section class="panel" id="panel-models">
+          <div class="page-stack">
+            <div class="card">
+              <h2>Models</h2>
+              <div id="models-table" class="loading">Loading models…</div>
+              <p class="note">Lifecycle states come from the Rust core. Timers never invent READY.</p>
+            </div>
+          </div>
+        </section>
+        <section class="panel" id="panel-tasks">
+          <div class="page-stack">
+            <div class="card">
+              <h2>Tasks</h2>
+              <div id="tasks-table" class="loading">Loading tasks…</div>
+            </div>
+          </div>
+        </section>
+        <section class="panel" id="panel-network">
+          <div class="page-stack" id="network-view">
+            <p class="loading">Loading network…</p>
+          </div>
+        </section>
+        <section class="panel" id="panel-settings">
+          <div class="page-stack">
+            <div class="grid-2">
+              <div class="card">
+                <h2>Resource participation</h2>
+                <p class="note">Opt-in. Default is PAUSED. Enforcement is in the Rust worker. Wallet/credits are not implemented.</p>
+                <label class="field">Sharing
+                  <select id="share-enabled">
+                    <option value="paused">PAUSED</option>
+                    <option value="active">ACTIVE</option>
+                  </select>
+                </label>
+                <label class="field">CPU limit (%)
+                  <input id="share-cpu" type="number" min="0" max="100" />
+                </label>
+                <label class="field">Memory limit (MB)
+                  <input id="share-mem" type="number" min="0" />
+                </label>
+                <label class="field check"><input id="share-idle" type="checkbox" /> Idle only</label>
+                <label class="field check"><input id="share-gpu" type="checkbox" disabled /> GPU contribution</label>
+                <p class="note" id="gpu-note">GPU: not detected — cannot enable.</p>
+                <button class="primary" id="share-save" type="button" style="margin-top:1rem">Save sharing</button>
+                <p class="mono" id="share-status" style="margin-top:0.75rem;color:var(--muted)"></p>
+                <div id="hw-view" class="note" style="margin-top:1rem"></div>
+                <p class="note" style="margin-top:1rem"><strong>Wallet</strong> <span class="badge warn" id="wallet-status">NOT IMPLEMENTED</span></p>
+              </div>
+              <div class="card">
+                <h2>Bootstrap dial</h2>
+                <p class="note">Dial a bootstrap peer by listen address. Identity and QUIC stay in the Rust core.</p>
+                <label class="field" for="dial-addr">Peer address</label>
+                <div class="row" style="margin-top:0.35rem">
+                  <input id="dial-addr" placeholder="203.0.113.10:4433" />
+                  <button class="primary" id="dial-btn" type="button">Dial</button>
+                </div>
+                <p class="mono" id="dial-status" style="margin-top:0.75rem;color:var(--muted)"></p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
     <script>
       const $ = (id) => document.getElementById(id);
+      const PAGE_TITLES = {
+        chat: "Chat",
+        peers: "Peers",
+        models: "Models",
+        tasks: "Tasks",
+        network: "Network",
+        settings: "Settings",
+      };
       let invoke = null;
       let generating = false;
       let activeId = null;
+      let conversations = [];
+      let pageLoad = { peers: false, models: false, tasks: false, network: false, convs: false };
+      let readyPeers = null;
 
       async function api(cmd, args = {}) {
         if (!invoke) {
           if (window.__TAURI__?.core?.invoke) invoke = window.__TAURI__.core.invoke;
-          else throw new Error("Tauri IPC unavailable — open via `npx tauri dev`");
+          else throw new Error("Tauri IPC unavailable — open via native app");
         }
         return invoke(cmd, args);
       }
@@ -398,96 +778,245 @@
         }[c]));
       }
 
+      function shortId(id) {
+        const s = String(id || "");
+        if (s.length <= 14) return s || "—";
+        return `${s.slice(0, 8)}…${s.slice(-4)}`;
+      }
+
+      function isMobileNav() {
+        return window.matchMedia("(max-width: 767px), (max-height: 520px)").matches;
+      }
+
+      function setNav(open) {
+        document.body.classList.toggle("nav-open", open);
+        $("nav-toggle").setAttribute("aria-expanded", open ? "true" : "false");
+        $("nav-toggle").setAttribute("aria-label", open ? "Close menu" : "Open menu");
+        if (open && isMobileNav()) $("new-chat").focus();
+      }
+
+      function closeNavIfMobile() {
+        if (isMobileNav()) setNav(false);
+      }
+
+      function syncSend() {
+        $("send").disabled = generating || !$("prompt").value.trim();
+        $("send").textContent = generating ? "…" : "Send";
+      }
+
       function badge(mode) {
         const m = (mode || "").toUpperCase();
         let cls = "badge";
-        if (m === "DIRECT" || m === "READY" || m === "TASK_RESULT" || m === "SUCCESS" || m === "ACTIVE") cls += " ok";
-        else if (m === "RELAY" || m.includes("NOT TESTED") || m === "ABSENT" || m === "PAUSED") cls += " warn";
-        else if (m === "FAILED" || m === "TASK_ERROR" || m === "TASK_TIMEOUT") cls += " bad";
-        return `<span class="${cls}">${m || "—"}</span>`;
+        if (["DIRECT", "READY", "TASK_RESULT", "SUCCESS", "ACTIVE", "CONNECTED"].includes(m)) cls += " ok";
+        else if (m === "RELAY" || m.includes("NOT TESTED") || ["ABSENT", "PAUSED", "TASK_OFFER"].includes(m)) cls += " warn";
+        else if (["FAILED", "TASK_ERROR", "TASK_TIMEOUT", "DISCONNECTED"].includes(m) || m.includes("ERROR")) cls += " bad";
+        return `<span class="${cls}">${esc(m || "—")}</span>`;
       }
 
-      function renderMessages(msgs) {
+      function stateBox(kind, title, detail, actionId) {
+        const retry = actionId
+          ? `<div style="margin-top:0.65rem"><button class="ghost" type="button" id="${actionId}">Retry</button></div>`
+          : "";
+        return `<div class="${kind}"><strong>${esc(title)}</strong>${detail ? `<div style="margin-top:0.35rem">${esc(detail)}</div>` : ""}${retry}</div>`;
+      }
+
+      function currentTitle() {
+        if (!activeId) return "Chat";
+        const c = conversations.find((x) => x.conversation_id === activeId);
+        return c?.title || "Chat";
+      }
+
+      function growComposer() {
+        const t = $("prompt");
+        t.style.height = "auto";
+        t.style.height = `${Math.min(t.scrollHeight, 160)}px`;
+        syncSend();
+      }
+
+      function renderMessages(msgs, opts = {}) {
         const log = $("chat-log");
         log.innerHTML = "";
-        if (!msgs?.length) {
+        if (opts.loading) {
           const el = document.createElement("div");
-          el.className = "bubble meta";
-          el.textContent = "No messages in this conversation.";
+          el.className = "msg system";
+          el.textContent = "Loading messages…";
           log.appendChild(el);
           return;
         }
-        for (const m of msgs) {
+        if (opts.error) {
           const el = document.createElement("div");
-          const role = m.role === "assistant" ? "assistant" : m.role === "user" ? "user" : "meta";
-          el.className = `bubble ${role}`;
-          el.textContent = m.content || "";
+          el.className = "msg error";
+          el.textContent = opts.error;
           log.appendChild(el);
+          return;
+        }
+        const empty = !msgs?.length;
+        if (!activeId || empty) {
+          const hero = document.createElement("div");
+          hero.className = "hero";
+          const h = document.createElement("h3");
+          h.textContent = "Community AI";
+          const p = document.createElement("p");
+          p.textContent = "What can I help you with?";
+          hero.append(h, p);
+          log.appendChild(hero);
+        } else {
+          for (const m of msgs) {
+            const el = document.createElement("div");
+            const role = m.role === "assistant" ? "assistant" : m.role === "user" ? "user" : "system";
+            el.className = `msg ${role}`;
+            el.textContent = m.content || "";
+            log.appendChild(el);
+          }
         }
         if (generating) {
           const el = document.createElement("div");
-          el.className = "bubble meta";
-          el.textContent = "Generating… waiting for completed mesh result (no live TOKEN_STREAM in this window).";
+          el.className = "generating";
+          el.setAttribute("aria-live", "polite");
+          el.innerHTML = `<span class="spinner" aria-hidden="true"></span> Generating…`;
           log.appendChild(el);
         }
-        log.scrollTop = log.scrollHeight;
+        const stage = log.parentElement;
+        stage.scrollTop = stage.scrollHeight;
       }
 
-      function renderHistory(convs) {
-        if (!convs?.length) {
-          $("conv-list").innerHTML = `<p class="empty">No conversations yet.</p>`;
+      function renderHistory(convs, err) {
+        if (err) {
+          $("conv-list").innerHTML = stateBox("err", "Unable to load conversations", String(err), "retry-convs");
+          const btn = $("retry-convs");
+          if (btn) btn.onclick = () => refresh();
           return;
         }
-        $("conv-list").innerHTML = convs.map((c) => {
+        if (!pageLoad.convs) {
+          $("conv-list").innerHTML = `<p class="loading">Loading conversations…</p>`;
+          return;
+        }
+        conversations = convs || [];
+        if (!conversations.length) {
+          $("conv-list").innerHTML = `<p class="empty">No conversations yet</p>`;
+          return;
+        }
+        $("conv-list").innerHTML = conversations.map((c) => {
           const active = c.conversation_id === activeId ? " active" : "";
           const when = c.updated_at ? new Date(Number(c.updated_at)).toLocaleString() : "";
-          return `<button class="hist-item${active}" data-id="${c.conversation_id}">
+          return `<button type="button" class="hist-item${active}" data-id="${esc(c.conversation_id)}">
             <span class="t">${esc(c.title || "Chat")}</span>
-            <span class="d">${when}</span>
+            <span class="d">${esc(when)}</span>
           </button>`;
         }).join("");
         $("conv-list").querySelectorAll(".hist-item").forEach((btn) => {
-          btn.addEventListener("click", async () => {
-            activeId = btn.dataset.id;
-            try {
-              await api("set_active_conversation", { id: activeId });
-              const msgs = await api("messages", { conversationId: activeId });
-              renderMessages(msgs);
-              renderHistory(convs);
-            } catch (e) {
-              $("chat-log").textContent = String(e);
-            }
-          });
+          btn.addEventListener("click", () => openConversation(btn.dataset.id));
         });
+      }
+
+      async function openConversation(id) {
+        activeId = id;
+        showPage("chat");
+        closeNavIfMobile();
+        renderMessages([], { loading: true });
+        try {
+          await api("set_active_conversation", { id });
+          const msgs = await api("messages", { conversationId: id });
+          renderHistory(conversations);
+          renderMessages(msgs);
+        } catch (e) {
+          renderMessages([], { error: `Unable to load messages. ${e}` });
+        }
+      }
+
+      function showPage(name) {
+        document.querySelectorAll("nav button").forEach((b) => {
+          b.classList.toggle("active", b.dataset.panel === name);
+        });
+        document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
+        $(`panel-${name}`).classList.add("active");
+        $("page-title").textContent = name === "chat" ? currentTitle() : PAGE_TITLES[name];
+      }
+
+      function updateConn(started, ready) {
+        const dot = $("conn-dot");
+        const pill = $("conn-pill");
+        const compact = isMobileNav();
+        if (!started) {
+          dot.className = "status-dot";
+          pill.textContent = "Connecting…";
+          $("aside-status").textContent = "Connecting…";
+          return;
+        }
+        if (ready == null) {
+          dot.className = "status-dot ok";
+          pill.textContent = "Connected";
+          $("aside-status").textContent = "Connected";
+        } else if (ready === 0) {
+          dot.className = "status-dot";
+          pill.textContent = compact ? "No peers" : "No peers available";
+          $("aside-status").textContent = "Connected · no ready peers";
+        } else {
+          dot.className = "status-dot ok";
+          pill.textContent = compact
+            ? `${ready} peer${ready === 1 ? "" : "s"}`
+            : `Connected · ${ready} peer${ready === 1 ? "" : "s"}`;
+          $("aside-status").textContent = `Connected · ${ready} ready`;
+        }
+      }
+
+      function applyHash() {
+        const h = (location.hash || "").replace(/^#/, "");
+        if (h === "nav") setNav(true);
+        else if (PAGE_TITLES[h]) showPage(h);
       }
 
       document.querySelectorAll("nav button").forEach((btn) => {
         btn.addEventListener("click", () => {
-          document.querySelectorAll("nav button").forEach((b) => b.classList.remove("active"));
-          document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
-          btn.classList.add("active");
-          $(`panel-${btn.dataset.panel}`).classList.add("active");
+          showPage(btn.dataset.panel);
+          closeNavIfMobile();
           refresh();
         });
       });
+      $("nav-toggle").addEventListener("click", () => {
+        if (!isMobileNav() && document.body.classList.contains("sidebar-collapsed")) {
+          document.body.classList.remove("sidebar-collapsed");
+          return;
+        }
+        setNav(!document.body.classList.contains("nav-open"));
+      });
+      $("nav-backdrop").addEventListener("click", () => setNav(false));
+      $("drawer-close").addEventListener("click", () => setNav(false));
+      $("collapse-sidebar").addEventListener("click", () => {
+        document.body.classList.add("sidebar-collapsed");
+        setNav(false);
+      });
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") setNav(false);
+      });
+      window.addEventListener("hashchange", applyHash);
 
       $("new-chat").addEventListener("click", async () => {
         try {
           const rec = await api("create_conversation");
           activeId = rec.conversation_id;
+          $("chat-error").hidden = true;
+          showPage("chat");
+          closeNavIfMobile();
           renderMessages([]);
           refresh();
         } catch (e) {
-          $("chat-log").textContent = String(e);
+          closeNavIfMobile();
+          showPage("chat");
+          renderMessages([], { error: `Unable to create conversation. ${e}` });
         }
       });
 
-      $("send").addEventListener("click", async () => {
+      async function sendPrompt() {
         const prompt = $("prompt").value.trim();
         if (!prompt || generating) return;
         generating = true;
-        $("send").disabled = true;
+        syncSend();
+        $("chat-error").hidden = true;
         $("prompt").value = "";
+        growComposer();
+        showPage("chat");
+        renderMessages([]);
         try {
           const existing = activeId ? await api("messages", { conversationId: activeId }) : [];
           renderMessages(existing);
@@ -497,30 +1026,45 @@
             .map((a) => `Attempt ${a.attempt} → ${a.worker} → ${a.result}`)
             .join("\n");
           $("last-meta").innerHTML = `
-            <div><strong>Executor</strong> <span class="mono">${r.executor}</span></div>
-            <div style="margin-top:0.4rem">${badge(r.connection_mode)} · engine <span class="mono">${r.engine}</span></div>
-            <div class="mono" style="margin-top:0.5rem;color:var(--muted)">
+            <div>Executor <span class="mono">${esc(r.executor)}</span> ${badge(r.connection_mode)} engine <span class="mono">${esc(r.engine)}</span></div>
+            <div class="mono" style="margin-top:0.35rem">
               TTFT ${r.time_to_first_token_ms ?? "—"} ms · ${r.tokens?.length ?? 0} tokens ·
               ${Number(r.tokens_per_sec || 0).toFixed(2)} tok/s · ${r.total_ms} ms
             </div>
-            <pre class="mono" style="margin-top:0.75rem;white-space:pre-wrap;color:var(--muted)">${attempts || "single attempt"}</pre>
+            <pre class="mono" style="margin:0.5rem 0 0;white-space:pre-wrap">${esc(attempts || "single attempt")}</pre>
           `;
         } catch (e) {
           const msg = String(e);
           const status = /timeout/i.test(msg) ? "TASK_TIMEOUT" : "TASK_ERROR";
-          $("last-meta").innerHTML = `<span class="badge bad">${status}</span> <span class="mono">${msg}</span>`;
+          $("chat-error").hidden = false;
+          $("chat-error").textContent = `Inference failed · ${status} · ${msg}`;
+          $("last-meta").innerHTML = `${badge(status)} <span class="mono">${esc(msg)}</span>`;
         } finally {
           generating = false;
-          $("send").disabled = false;
+          syncSend();
           if (activeId) {
             try {
               const msgs = await api("messages", { conversationId: activeId });
               renderMessages(msgs);
-            } catch (_) { /* SQLite reload is best-effort after send */ }
+            } catch (err) {
+              renderMessages([], { error: `Unable to reload messages. ${err}` });
+            }
           }
           refresh();
         }
+      }
+
+      $("composer-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        sendPrompt();
       });
+      $("prompt").addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter" && !ev.shiftKey) {
+          ev.preventDefault();
+          sendPrompt();
+        }
+      });
+      $("prompt").addEventListener("input", growComposer);
 
       $("dial-btn").addEventListener("click", async () => {
         const addr = $("dial-addr").value.trim();
@@ -564,7 +1108,7 @@
         $("share-mem").value = s.memory_limit_mb ?? 2048;
         $("share-idle").checked = !!s.idle_only;
         const hw = v.hardware || {};
-        const gpuDetected = !!(hw.gpu_model);
+        const gpuDetected = !!hw.gpu_model;
         $("share-gpu").disabled = !gpuDetected;
         $("share-gpu").checked = gpuDetected && !!s.gpu_enabled;
         $("gpu-note").textContent = gpuDetected
@@ -572,113 +1116,238 @@
           : "GPU: not detected — cannot enable.";
         $("hw-view").innerHTML = `
           <div><strong>Detected hardware</strong></div>
-          <div class="mono">CPU ${hw.cpu_model || "unknown"} · ${hw.cpu_cores ?? "—"} cores · ${Number(hw.cpu_usage_pct || 0).toFixed(0)}%</div>
+          <div class="mono">CPU ${esc(hw.cpu_model || "unknown")} · ${hw.cpu_cores ?? "—"} cores · ${Number(hw.cpu_usage_pct || 0).toFixed(0)}%</div>
           <div class="mono">RAM ${hw.memory_available_mb ?? "—"} / ${hw.memory_total_mb ?? "—"} MB available/total</div>
-          <div class="mono">GPU ${hw.gpu_model || "none"}</div>`;
+          <div class="mono">GPU ${esc(hw.gpu_model || "none")}</div>`;
       }
 
-      function renderPeers(peers) {
-        if (!peers?.length) {
-          $("peers-table").innerHTML = `<p class="empty">No authenticated peers yet. Dial from Settings or wait for discovery.</p>`;
+      function td(label, html) {
+        return `<td data-label="${esc(label)}">${html}</td>`;
+      }
+
+      function renderPeers(peers, err) {
+        if (err) {
+          $("peers-table").innerHTML = stateBox("err", "Unable to load peers", String(err), "retry-peers");
+          const btn = $("retry-peers");
+          if (btn) btn.onclick = () => refresh();
           return;
         }
-        $("peers-table").innerHTML = `<table>
+        if (!pageLoad.peers) {
+          $("peers-table").innerHTML = `<p class="loading">Loading peers…</p>`;
+          return;
+        }
+        if (!peers?.length) {
+          $("peers-table").innerHTML = stateBox(
+            "empty",
+            "No peers connected",
+            "Connect another Community AI peer to use distributed inference."
+          );
+          return;
+        }
+        $("peers-table").innerHTML = `<div class="table-wrap"><table>
           <thead><tr><th>Peer</th><th>State</th><th>Sharing</th><th>Mode</th><th>RTT</th><th>Endpoints</th><th>Models</th></tr></thead>
           <tbody>${peers.map((p) => `<tr>
-            <td class="mono">${p.peer_id}</td>
-            <td>${badge(p.state)}</td>
-            <td>${badge(p.compute_sharing || "—")}</td>
-            <td>${badge(p.connection_mode)}</td>
-            <td class="mono">${p.rtt_ms == null ? "—" : p.rtt_ms.toFixed(1) + " ms"}</td>
-            <td class="mono">${(p.endpoints || []).map((e) => `${e.kind} ${e.addr}`).join("<br>") || p.session_addr}</td>
-            <td class="mono">${(p.models || []).map((m) => `${m.model_id}:${m.state}`).join("<br>") || "—"}</td>
-          </tr>`).join("")}</tbody></table>`;
+            ${td("Peer", `<span class="mono">${esc(shortId(p.peer_id))}</span>`)}
+            ${td("State", badge(p.state))}
+            ${td("Compute", badge(p.compute_sharing || "—"))}
+            ${td("Mode", badge(p.connection_mode))}
+            ${td("RTT", `<span class="mono">${p.rtt_ms == null ? "—" : Number(p.rtt_ms).toFixed(1) + " ms"}</span>`)}
+            ${td("Endpoints", `<span class="mono">${(p.endpoints || []).map((e) => `${esc(e.kind)} ${esc(e.addr)}`).join("<br>") || esc(p.session_addr)}</span>`)}
+            ${td("Models", `<span class="mono">${(p.models || []).map((m) => `${esc(m.model_id)}:${esc(m.state)}`).join("<br>") || "—"}</span>`)}
+          </tr>`).join("")}</tbody></table></div>`;
       }
 
-      function renderModels(models) {
+      function renderModels(models, err) {
+        if (err) {
+          $("models-table").innerHTML = stateBox("err", "Unable to load models", String(err), "retry-models");
+          const btn = $("retry-models");
+          if (btn) btn.onclick = () => refresh();
+          return;
+        }
+        if (!pageLoad.models) {
+          $("models-table").innerHTML = `<p class="loading">Loading models…</p>`;
+          return;
+        }
         if (!models?.length) {
-          $("models-table").innerHTML = `<p class="empty">No models.</p>`;
+          $("models-table").innerHTML = stateBox("empty", "No models available", "Advertisements appear when a peer reports a READY model.");
           return;
         }
-        $("models-table").innerHTML = `<table>
-          <thead><tr><th>Model</th><th>State</th><th>Runtime</th><th>Peer</th><th>Available</th></tr></thead>
+        $("models-table").innerHTML = `<div class="table-wrap"><table>
+          <thead><tr><th>Model</th><th>State</th><th>Runtime</th><th>Quant</th><th>Peer</th><th>Available</th></tr></thead>
           <tbody>${models.map((m) => `<tr>
-            <td class="mono">${m.model_id}</td>
-            <td>${badge(m.state)}</td>
-            <td class="mono">${m.runtime} ${m.quantization}</td>
-            <td class="mono">${m.peer_id || "—"}</td>
-            <td class="mono">${m.available ? "yes" : "no"}</td>
-          </tr>`).join("")}</tbody></table>`;
+            ${td("Model", `<span class="mono">${esc(m.model_id)}</span>`)}
+            ${td("State", badge(m.state))}
+            ${td("Runtime", `<span class="mono">${esc(m.runtime)}</span>`)}
+            ${td("Quant", `<span class="mono">${esc(m.quantization)}</span>`)}
+            ${td("Peer", `<span class="mono">${esc(shortId(m.peer_id || "—"))}</span>`)}
+            ${td("Available", `<span class="mono">${m.available ? "yes" : "no"}</span>`)}
+          </tr>`).join("")}</tbody></table></div>`;
       }
 
-      function renderTasks(tasks) {
-        if (!tasks?.length) {
-          $("tasks-table").innerHTML = `<p class="empty">No originated tasks.</p>`;
+      function renderTasks(tasks, err) {
+        if (err) {
+          $("tasks-table").innerHTML = stateBox("err", "Unable to load tasks", String(err), "retry-tasks");
+          const btn = $("retry-tasks");
+          if (btn) btn.onclick = () => refresh();
           return;
         }
-        $("tasks-table").innerHTML = `<table>
+        if (!pageLoad.tasks) {
+          $("tasks-table").innerHTML = `<p class="loading">Loading tasks…</p>`;
+          return;
+        }
+        if (!tasks?.length) {
+          $("tasks-table").innerHTML = stateBox(
+            "empty",
+            "No tasks yet",
+            "Tasks will appear here when Community AI performs inference."
+          );
+          return;
+        }
+        $("tasks-table").innerHTML = `<div class="table-wrap"><table>
           <thead><tr><th>Task</th><th>Status</th><th>Model</th><th>Attempts</th><th>Executor</th></tr></thead>
           <tbody>${tasks.map((t) => `<tr>
-            <td class="mono">${t.task_id}<div style="color:var(--muted)">${t.prompt_preview}</div></td>
-            <td>${badge(t.status)}${t.error ? `<div class="mono" style="color:var(--bad)">${t.error}</div>` : ""}</td>
-            <td class="mono">${t.model_id}</td>
-            <td class="mono">${(t.attempts || []).map((a) => `Attempt ${a.attempt} → ${a.worker} → ${a.result}`).join("<br>") || "—"}</td>
-            <td class="mono">${t.executor || "—"} ${t.connection_mode ? badge(t.connection_mode) : ""}</td>
-          </tr>`).join("")}</tbody></table>`;
+            ${td("Task", `<span class="mono">${esc(t.task_id)}</span><div style="color:var(--muted)">${esc(t.prompt_preview)}</div>`)}
+            ${td("Status", `${badge(t.status)}${t.error ? `<div class="mono" style="color:var(--bad)">${esc(t.error)}</div>` : ""}`)}
+            ${td("Model", `<span class="mono">${esc(t.model_id)}</span>`)}
+            ${td("Attempts", `<span class="mono">${(t.attempts || []).map((a) => `Attempt ${esc(a.attempt)} → ${esc(a.worker)} → ${esc(a.result)}`).join("<br>") || "—"}</span>`)}
+            ${td("Executor", `<span class="mono">${esc(t.executor || "—")}</span> ${t.connection_mode ? badge(t.connection_mode) : ""}`)}
+          </tr>`).join("")}</tbody></table></div>`;
       }
 
-      function renderNetwork(n) {
-        if (!n) return;
-        $("wan-pill").textContent = n.wan_status || "PHYSICAL WAN VERIFIED — NOT TESTED";
-        const eps = (n.endpoints || []).map((e) => `<div class="mono">${e.kind} ${e.addr}</div>`).join("");
+      function renderNetwork(n, err) {
+        if (err) {
+          $("network-view").innerHTML = stateBox("err", "Unable to load network", String(err), "retry-net");
+          const btn = $("retry-net");
+          if (btn) btn.onclick = () => refresh();
+          return;
+        }
+        if (!pageLoad.network || !n) {
+          $("network-view").innerHTML = `<p class="loading">Loading network…</p>`;
+          return;
+        }
+        const eps = (n.endpoints || []).map((e) => `<div class="mono">${esc(e.kind)} ${esc(e.addr)}</div>`).join("")
+          || `<div class="empty">none</div>`;
         const cons = (n.connections || []).map((c) => `<tr>
-          <td class="mono">${c.peer_id}</td>
-          <td>${badge(c.connection_mode)}</td>
-          <td class="mono">${c.session_addr}</td>
-          <td class="mono">${c.rtt_ms == null ? "—" : c.rtt_ms.toFixed(1)}</td>
-          <td class="mono">${c.evidence_class}</td>
+          ${td("Peer", `<span class="mono">${esc(shortId(c.peer_id))}</span>`)}
+          ${td("Mode", badge(c.connection_mode))}
+          ${td("Session", `<span class="mono">${esc(c.session_addr)}</span>`)}
+          ${td("RTT", `<span class="mono">${c.rtt_ms == null ? "—" : Number(c.rtt_ms).toFixed(1) + " ms"}</span>`)}
+          ${td("Evidence", `<span class="mono">${esc(c.evidence_class)}</span>`)}
         </tr>`).join("");
         $("network-view").innerHTML = `
-          <div><strong>Local peer</strong> <span class="mono">${n.local_peer_id}</span></div>
-          <div style="margin-top:0.35rem"><strong>Listen</strong> <span class="mono">${n.listen_addr}</span> · ready peers ${n.ready_peers}</div>
-          <div style="margin-top:0.75rem"><strong>Advertised endpoints</strong>${eps || '<div class="empty">none</div>'}</div>
-          <p class="note" style="margin-top:0.75rem">${n.evidence_note || ""}</p>
-          <table style="margin-top:0.75rem">
-            <thead><tr><th>Peer</th><th>Mode</th><th>Session</th><th>RTT</th><th>Evidence</th></tr></thead>
-            <tbody>${cons || '<tr><td colspan="5" class="empty">No connections</td></tr>'}</tbody>
-          </table>`;
+          <div class="grid-2">
+            <div class="card">
+              <h2>Local peer</h2>
+              <dl class="kv">
+                <dt>Peer</dt><dd class="mono">${esc(n.local_peer_id)}</dd>
+                <dt>Listen</dt><dd class="mono">${esc(n.listen_addr)}</dd>
+                <dt>Ready peers</dt><dd>${Number(n.ready_peers || 0)}</dd>
+                <dt>Transport</dt><dd>QUIC</dd>
+              </dl>
+            </div>
+            <div class="card">
+              <h2>WAN evidence</h2>
+              <p class="note">${esc(n.evidence_note || "")}</p>
+              <p class="note" style="margin-top:0.75rem"><span class="pill warn">${esc(n.wan_status || "PHYSICAL WAN VERIFIED — NOT TESTED")}</span></p>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Advertised endpoints</h2>
+            ${eps}
+          </div>
+          <div class="card">
+            <h2>Connections</h2>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Peer</th><th>Mode</th><th>Session</th><th>RTT</th><th>Evidence</th></tr></thead>
+                <tbody>${cons || `<tr><td data-label="Status" class="empty">No connections</td></tr>`}</tbody>
+              </table>
+            </div>
+          </div>`;
+      }
+
+      function markPagesReady() {
+        pageLoad.peers = pageLoad.models = pageLoad.tasks = pageLoad.network = pageLoad.convs = true;
       }
 
       async function refresh() {
         try {
           const s = await api("session");
-          if (s.local_peer_id) $("local-peer").textContent = `peer: ${s.local_peer_id}`;
-          if (s.wan_status) $("wan-pill").textContent = s.wan_status;
-          if (!s.started) return;
-          const [p, m, t, n, convs, res] = await Promise.all([
+          const started = !!s.started;
+          updateConn(started, readyPeers);
+          if (!started) return;
+
+          const results = await Promise.allSettled([
             api("peers"),
             api("models"),
             api("tasks"),
             api("network"),
             api("conversations"),
             api("resource"),
+            api("ready_peers"),
           ]);
-          renderPeers(p);
-          renderModels(m);
-          renderTasks(t);
-          renderNetwork(n);
-          renderResource(res, !document.activeElement || !document.activeElement.closest("#panel-settings"));
+          const val = (i) => (results[i].status === "fulfilled" ? results[i].value : null);
+          const err = (i) => (results[i].status === "rejected" ? results[i].reason : null);
+          markPagesReady();
+          renderPeers(val(0), err(0));
+          renderModels(val(1), err(1));
+          renderTasks(val(2), err(2));
+          renderNetwork(val(3), err(3));
+          renderHistory(val(4) || [], err(4));
+          if (val(5)) {
+            renderResource(
+              val(5),
+              !document.activeElement || !document.activeElement.closest("#panel-settings")
+            );
+          }
+          if (val(6) != null) readyPeers = val(6);
+          updateConn(true, readyPeers);
           if (!activeId && s.active_conversation_id) activeId = s.active_conversation_id;
-          renderHistory(convs || []);
-          if (activeId && !generating) {
-            const msgs = await api("messages", { conversationId: activeId });
-            renderMessages(msgs);
+          if ($("panel-chat").classList.contains("active")) {
+            $("page-title").textContent = currentTitle();
+          }
+          if (activeId && !generating && $("panel-chat").classList.contains("active")) {
+            try {
+              const msgs = await api("messages", { conversationId: activeId });
+              renderMessages(msgs);
+            } catch (e) {
+              renderMessages([], { error: `Unable to load messages. ${e}` });
+            }
+          } else if (!activeId && !generating && $("panel-chat").classList.contains("active")) {
+            renderMessages([]);
           }
         } catch (e) {
-          $("local-peer").textContent = String(e);
+          $("conn-dot").className = "status-dot bad";
+          $("conn-pill").textContent = "Offline";
+          $("aside-status").textContent = "Offline";
+          markPagesReady();
+          renderHistory([], e);
+          renderPeers(null, e);
+          renderModels(null, e);
+          renderTasks(null, e);
+          renderNetwork(null, e);
+          if (!generating) renderMessages([]);
         }
       }
 
+      function syncViewport() {
+        const vv = window.visualViewport;
+        const h = vv ? vv.height : window.innerHeight;
+        document.documentElement.style.setProperty("--vvh", `${h}px`);
+      }
+      if (window.visualViewport) {
+        visualViewport.addEventListener("resize", syncViewport);
+        visualViewport.addEventListener("scroll", syncViewport);
+      }
+      window.addEventListener("resize", () => {
+        if (!isMobileNav()) setNav(false);
+        else document.body.classList.remove("sidebar-collapsed");
+        syncViewport();
+      });
+      syncViewport();
+      growComposer();
+      renderMessages([]);
+      applyHash();
       refresh();
       setInterval(refresh, 2500);
     </script>
