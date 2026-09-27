@@ -7,6 +7,7 @@
     <style>
       :root {
         --bg: #12100e;
+        --sidebar: #161310;
         --panel: #1c1814;
         --line: #3a322a;
         --text: #f2ebe3;
@@ -17,101 +18,57 @@
         --bad: #c44b3c;
         --mono: "IBM Plex Mono", "SF Mono", ui-monospace, monospace;
         --sans: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+        --sidebar-w: 248px;
       }
       * { box-sizing: border-box; }
       html, body { height: 100%; margin: 0; }
       body {
         font-family: var(--sans);
-        background:
-          radial-gradient(1200px 600px at 10% -10%, #2a1c12 0%, transparent 55%),
-          linear-gradient(180deg, #161310, var(--bg));
+        background: var(--bg);
         color: var(--text);
         display: grid;
-        grid-template-rows: auto 1fr;
+        grid-template-columns: var(--sidebar-w) 1fr;
+        min-height: 100%;
       }
-      header {
-        display: flex;
-        align-items: center;
-        gap: 1.25rem;
-        padding: 0.85rem 1.25rem;
-        border-bottom: 1px solid var(--line);
-        background: rgba(18, 16, 14, 0.85);
-        backdrop-filter: blur(8px);
+      aside {
+        display: grid;
+        grid-template-rows: auto auto 1fr auto;
+        border-right: 1px solid var(--line);
+        background: var(--sidebar);
+        min-height: 0;
+        min-width: 0;
+      }
+      .brand-block {
+        padding: 1rem 1rem 0.75rem;
       }
       .brand {
-        font-size: 1.35rem;
+        margin: 0;
+        font-size: 1.15rem;
         font-weight: 700;
         letter-spacing: -0.02em;
         color: var(--brand);
-        margin: 0;
       }
-      .wan-pill {
-        font-family: var(--mono);
+      .brand-sub {
+        margin: 0.2rem 0 0;
         font-size: 0.72rem;
-        color: var(--warn);
-        border: 1px solid #6a5620;
-        background: #2a230f;
-        padding: 0.28rem 0.55rem;
-        border-radius: 4px;
-      }
-      .peer-chip {
-        margin-left: auto;
-        font-family: var(--mono);
-        font-size: 0.75rem;
         color: var(--muted);
-        max-width: 40vw;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
       }
-      nav {
-        display: flex;
-        gap: 0.35rem;
+      #new-chat {
+        margin: 0 0.85rem 0.75rem;
+        width: calc(100% - 1.7rem);
       }
-      nav button {
-        appearance: none;
-        border: 0;
-        background: transparent;
-        color: var(--muted);
-        padding: 0.45rem 0.7rem;
-        border-radius: 6px;
-        cursor: pointer;
-        font: inherit;
-      }
-      nav button.active, nav button:hover {
-        background: #2a221c;
-        color: var(--text);
-      }
-      main {
-        display: grid;
-        grid-template-columns: 1fr;
+      .conv-wrap {
         min-height: 0;
-      }
-      .panel {
-        display: none;
-        min-height: 0;
-        padding: 1rem 1.25rem 1.5rem;
         overflow: auto;
+        padding: 0 0.65rem 0.75rem;
+        border-bottom: 1px solid var(--line);
       }
-      .panel.active { display: grid; gap: 1rem; }
-      .grid-2 {
-        display: grid;
-        grid-template-columns: 1.4fr 1fr;
-        gap: 1rem;
-        min-height: 0;
-      }
-      .grid-chat {
-        display: grid;
-        grid-template-columns: 220px 1.4fr 1fr;
-        gap: 1rem;
-        min-height: 0;
-      }
-      @media (max-width: 1100px) {
-        .grid-chat { grid-template-columns: 1fr; }
-      }
-      @media (max-width: 900px) {
-        .grid-2 { grid-template-columns: 1fr; }
-        .peer-chip { display: none; }
+      .section-label {
+        font-size: 0.68rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 0.35rem 0.35rem 0.5rem;
       }
       .hist-item {
         width: 100%;
@@ -119,18 +76,19 @@
         background: transparent;
         border: 1px solid transparent;
         color: var(--text);
-        padding: 0.55rem 0.6rem;
+        padding: 0.5rem 0.55rem;
         border-radius: 8px;
         cursor: pointer;
         font: inherit;
+        margin-bottom: 0.2rem;
       }
       .hist-item:hover, .hist-item.active {
-        background: #2a221c;
+        background: #241c18;
         border-color: var(--line);
       }
       .hist-item .t {
         display: block;
-        font-size: 0.9rem;
+        font-size: 0.88rem;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -138,53 +96,129 @@
       .hist-item .d {
         display: block;
         font-family: var(--mono);
-        font-size: 0.68rem;
+        font-size: 0.65rem;
         color: var(--muted);
-        margin-top: 0.15rem;
+        margin-top: 0.12rem;
       }
-      .share-pill {
-        font-family: var(--mono);
-        font-size: 0.72rem;
-        padding: 0.28rem 0.55rem;
-        border-radius: 4px;
-        border: 1px solid var(--line);
+      nav {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+        padding: 0.7rem 0.65rem 0.85rem;
       }
-      label.field {
+      nav button {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        padding: 0.48rem 0.6rem;
+        border-radius: 7px;
+        cursor: pointer;
+        font: inherit;
+        text-align: left;
+      }
+      nav button.active, nav button:hover {
+        background: #241c18;
+        color: var(--text);
+      }
+      .workspace {
         display: grid;
-        gap: 0.3rem;
-        font-size: 0.85rem;
-        color: var(--muted);
-        margin-top: 0.75rem;
+        grid-template-rows: auto 1fr auto;
+        min-width: 0;
+        min-height: 0;
       }
-      .card {
+      header {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        padding: 0.7rem 1.1rem;
+        border-bottom: 1px solid var(--line);
+        background: #161310;
+        min-width: 0;
+      }
+      #page-title {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .header-meta {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        min-width: 0;
+      }
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--warn);
+        flex: 0 0 auto;
+      }
+      .status-dot.ok { background: var(--ok); }
+      .status-dot.bad { background: var(--bad); }
+      .pill {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--muted);
+        border: 1px solid var(--line);
+        padding: 0.22rem 0.45rem;
+        border-radius: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 28vw;
+      }
+      .pill.warn {
+        color: var(--warn);
+        border-color: #6a5620;
+        background: #2a230f;
+      }
+      main {
+        min-height: 0;
+        min-width: 0;
+        overflow: auto;
+        padding: 1rem 1.1rem 1.15rem;
+      }
+      .panel { display: none; min-height: 100%; }
+      .panel.active { display: grid; gap: 0.9rem; min-height: 100%; }
+      .panel-chat.active {
+        grid-template-rows: 1fr auto;
+      }
+      .chat-stage {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        min-height: 0;
         background: var(--panel);
         border: 1px solid var(--line);
         border-radius: 10px;
-        padding: 1rem;
-        min-height: 0;
+        overflow: hidden;
       }
-      h2 {
-        margin: 0 0 0.75rem;
-        font-size: 0.95rem;
-        font-weight: 600;
+      .chat-titlebar {
+        padding: 0.7rem 0.95rem;
+        border-bottom: 1px solid var(--line);
         color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
+        font-size: 0.82rem;
       }
       .chat-log {
-        height: min(52vh, 420px);
+        min-height: 0;
         overflow: auto;
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
-        margin-bottom: 0.75rem;
+        gap: 0.7rem;
+        padding: 0.95rem;
       }
       .bubble {
-        max-width: 92%;
+        max-width: min(72ch, 88%);
         padding: 0.7rem 0.85rem;
         border-radius: 10px;
-        line-height: 1.45;
+        line-height: 1.5;
         white-space: pre-wrap;
+        word-break: break-word;
       }
       .bubble.user {
         align-self: flex-end;
@@ -196,7 +230,7 @@
         background: #201c18;
         border: 1px solid var(--line);
       }
-      .bubble.meta {
+      .bubble.meta, .bubble.system {
         align-self: center;
         font-family: var(--mono);
         font-size: 0.75rem;
@@ -205,12 +239,41 @@
         border: 0;
         padding: 0.2rem;
       }
+      .bubble.error {
+        align-self: stretch;
+        background: #2a1614;
+        border: 1px solid #6a3028;
+        color: #e8c4be;
+        max-width: 100%;
+      }
+      .generating {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        align-self: flex-start;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+      .spinner {
+        width: 12px;
+        height: 12px;
+        border: 2px solid var(--line);
+        border-top-color: var(--brand);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .composer-wrap {
+        display: grid;
+        gap: 0.55rem;
+      }
       .composer {
         display: grid;
         grid-template-columns: 1fr auto;
         gap: 0.5rem;
+        align-items: end;
       }
-      textarea, input {
+      textarea, input, select {
         width: 100%;
         background: #14110f;
         border: 1px solid var(--line);
@@ -218,8 +281,8 @@
         border-radius: 8px;
         padding: 0.7rem 0.8rem;
         font: inherit;
-        resize: vertical;
       }
+      textarea { resize: vertical; min-height: 4.4rem; }
       button.primary {
         background: var(--brand);
         color: #1a0f08;
@@ -228,29 +291,71 @@
         padding: 0.7rem 1rem;
         font-weight: 700;
         cursor: pointer;
+        font: inherit;
       }
       button.primary:disabled {
         opacity: 0.45;
         cursor: not-allowed;
       }
+      button.ghost {
+        background: transparent;
+        border: 1px solid var(--line);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 0.45rem 0.75rem;
+        cursor: pointer;
+        font: inherit;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 1rem;
+        min-width: 0;
+      }
+      h2 {
+        margin: 0 0 0.75rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 0.9rem;
+        min-width: 0;
+      }
       table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 0.9rem;
+        font-size: 0.88rem;
       }
       th, td {
         text-align: left;
-        padding: 0.45rem 0.35rem;
+        padding: 0.5rem 0.4rem;
         border-bottom: 1px solid var(--line);
         vertical-align: top;
       }
-      th { color: var(--muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
-      code, .mono { font-family: var(--mono); font-size: 0.8rem; }
-      .empty { color: var(--muted); font-size: 0.9rem; }
+      th {
+        color: var(--muted);
+        font-weight: 600;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+      }
+      .table-wrap { overflow: auto; }
+      code, .mono { font-family: var(--mono); font-size: 0.78rem; }
+      .empty, .loading, .err {
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+      .empty, .loading { color: var(--muted); }
+      .err { color: #e8c4be; }
       .badge {
         display: inline-block;
         font-family: var(--mono);
-        font-size: 0.7rem;
+        font-size: 0.68rem;
         padding: 0.15rem 0.4rem;
         border-radius: 4px;
         border: 1px solid var(--line);
@@ -261,14 +366,54 @@
       .note {
         font-size: 0.85rem;
         color: var(--muted);
-        line-height: 1.4;
+        line-height: 1.45;
       }
       .row { display: flex; gap: 0.5rem; align-items: center; }
+      label.field {
+        display: grid;
+        gap: 0.3rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+        margin-top: 0.75rem;
+      }
+      footer {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.45rem 1.1rem;
+        border-top: 1px solid var(--line);
+        background: #161310;
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--muted);
+        min-width: 0;
+      }
+      footer span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      @media (max-width: 1280px) {
+        .grid-2 { grid-template-columns: 1fr; }
+        .pill { max-width: 18vw; }
+      }
+      @media (max-width: 1100px) {
+        body { grid-template-columns: 212px 1fr; }
+        :root { --sidebar-w: 212px; }
+      }
     </style>
   </head>
   <body>
-    <header>
-      <h1 class="brand">Community AI</h1>
+    <aside>
+      <div class="brand-block">
+        <h1 class="brand">Community AI</h1>
+        <p class="brand-sub">Native peer · no coordinator</p>
+      </div>
+      <button class="primary" id="new-chat">+ New Chat</button>
+      <div class="conv-wrap">
+        <div class="section-label">Conversations</div>
+        <div id="conv-list" class="loading">Loading conversations…</div>
+      </div>
       <nav>
         <button data-panel="chat" class="active">Chat</button>
         <button data-panel="peers">Peers</button>
@@ -277,112 +422,128 @@
         <button data-panel="network">Network</button>
         <button data-panel="settings">Settings</button>
       </nav>
-      <span class="share-pill" id="share-pill">sharing: …</span>
-      <span class="wan-pill" id="wan-pill">PHYSICAL WAN VERIFIED — NOT TESTED</span>
-      <span class="peer-chip mono" id="local-peer">peer: starting…</span>
-    </header>
-    <main>
-      <section class="panel active" id="panel-chat">
-        <div class="grid-chat">
-          <div class="card">
-            <h2>History</h2>
-            <button class="primary" id="new-chat" style="width:100%;margin-bottom:0.75rem">New chat</button>
-            <div id="conv-list" class="empty">No conversations yet.</div>
-          </div>
-          <div class="card">
-            <h2>Chat</h2>
+    </aside>
+    <div class="workspace">
+      <header>
+        <h2 id="page-title">Chat</h2>
+        <div class="header-meta">
+          <span class="status-dot" id="conn-dot" title="mesh status"></span>
+          <span class="pill" id="conn-pill">starting…</span>
+          <span class="pill" id="share-pill">sharing: …</span>
+          <span class="pill" id="local-peer">peer: …</span>
+        </div>
+      </header>
+      <main>
+        <section class="panel panel-chat active" id="panel-chat">
+          <div class="chat-stage">
+            <div class="chat-titlebar" id="chat-title">No conversation selected</div>
             <div class="chat-log" id="chat-log"></div>
+          </div>
+          <div class="composer-wrap">
             <div class="composer">
-              <textarea id="prompt" rows="3" placeholder="Ask a peer that has a READY model…"></textarea>
+              <textarea id="prompt" rows="3" placeholder="Message a peer that has a READY model… (Enter to send, Shift+Enter for a new line)"></textarea>
               <button class="primary" id="send">Send</button>
             </div>
-            <p class="note">Messages are stored on this peer in SQLite. TOKEN_STREAM is collected in Rust; this window shows the completed result. No templates, no WebRTC, no TypeScript coordinator.</p>
+            <div id="chat-error" hidden class="bubble error"></div>
+            <div id="last-meta" class="note">No completed inference yet. TOKEN_STREAM is collected in Rust; this window shows the finished result.</div>
           </div>
+        </section>
+
+        <section class="panel" id="panel-peers">
           <div class="card">
-            <h2>Last inference</h2>
-            <div id="last-meta" class="empty">No task yet.</div>
+            <h2>Peers</h2>
+            <div id="peers-table" class="loading">Loading peers…</div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="panel" id="panel-peers">
-        <div class="card">
-          <h2>Peers</h2>
-          <div id="peers-table" class="empty">Waiting for mesh…</div>
-        </div>
-      </section>
-
-      <section class="panel" id="panel-models">
-        <div class="card">
-          <h2>Models</h2>
-          <div id="models-table" class="empty">No model advertisements yet.</div>
-          <p class="note">Lifecycle states are from the Rust core. Timers never invent READY.</p>
-        </div>
-      </section>
-
-      <section class="panel" id="panel-tasks">
-        <div class="card">
-          <h2>Tasks</h2>
-          <div id="tasks-table" class="empty">No tasks originated from this UI yet.</div>
-        </div>
-      </section>
-
-      <section class="panel" id="panel-network">
-        <div class="card">
-          <h2>Network</h2>
-          <div id="network-view" class="empty">…</div>
-        </div>
-      </section>
-
-      <section class="panel" id="panel-settings">
-        <div class="grid-2">
+        <section class="panel" id="panel-models">
           <div class="card">
-            <h2>Resource participation</h2>
-            <p class="note">Opt-in. Default is PAUSED. Enforcement is in the Rust worker, not this form. Wallet/credits are not implemented.</p>
-            <label class="field">Sharing
-              <select id="share-enabled">
-                <option value="paused">PAUSED</option>
-                <option value="active">ACTIVE</option>
-              </select>
-            </label>
-            <label class="field">CPU limit (%)
-              <input id="share-cpu" type="number" min="0" max="100" />
-            </label>
-            <label class="field">Memory limit (MB)
-              <input id="share-mem" type="number" min="0" />
-            </label>
-            <label class="field" style="display:flex;flex-direction:row;align-items:center;gap:0.5rem">
-              <input id="share-idle" type="checkbox" />
-              Idle only
-            </label>
-            <label class="field" style="display:flex;flex-direction:row;align-items:center;gap:0.5rem">
-              <input id="share-gpu" type="checkbox" disabled />
-              GPU contribution
-            </label>
-            <p class="note" id="gpu-note">GPU: not detected — cannot enable.</p>
-            <button class="primary" id="share-save" style="margin-top:1rem">Save sharing</button>
-            <p class="mono" id="share-status" style="margin-top:0.75rem;color:var(--muted)"></p>
-            <div id="hw-view" class="note" style="margin-top:1rem"></div>
-            <p class="note" style="margin-top:1rem"><strong>Wallet</strong> <span class="badge warn" id="wallet-status">NOT IMPLEMENTED</span></p>
+            <h2>Models</h2>
+            <div id="models-table" class="loading">Loading models…</div>
+            <p class="note">Lifecycle states come from the Rust core. Timers never invent READY.</p>
           </div>
+        </section>
+
+        <section class="panel" id="panel-tasks">
           <div class="card">
-            <h2>Bootstrap dial</h2>
-            <p class="note">Dial a bootstrap peer by listen address. Identity and QUIC stay in the Rust core.</p>
-            <div class="row" style="margin-top:0.75rem">
-              <input id="dial-addr" placeholder="203.0.113.10:4433" />
-              <button class="primary" id="dial-btn">Dial</button>
+            <h2>Tasks</h2>
+            <div id="tasks-table" class="loading">Loading tasks…</div>
+          </div>
+        </section>
+
+        <section class="panel" id="panel-network">
+          <div class="card">
+            <h2>Network</h2>
+            <div id="network-view" class="loading">Loading network…</div>
+          </div>
+        </section>
+
+        <section class="panel" id="panel-settings">
+          <div class="grid-2">
+            <div class="card">
+              <h2>Resource participation</h2>
+              <p class="note">Opt-in. Default is PAUSED. Enforcement is in the Rust worker, not this form. Wallet/credits are not implemented.</p>
+              <label class="field">Sharing
+                <select id="share-enabled">
+                  <option value="paused">PAUSED</option>
+                  <option value="active">ACTIVE</option>
+                </select>
+              </label>
+              <label class="field">CPU limit (%)
+                <input id="share-cpu" type="number" min="0" max="100" />
+              </label>
+              <label class="field">Memory limit (MB)
+                <input id="share-mem" type="number" min="0" />
+              </label>
+              <label class="field" style="display:flex;flex-direction:row;align-items:center;gap:0.5rem">
+                <input id="share-idle" type="checkbox" />
+                Idle only
+              </label>
+              <label class="field" style="display:flex;flex-direction:row;align-items:center;gap:0.5rem">
+                <input id="share-gpu" type="checkbox" disabled />
+                GPU contribution
+              </label>
+              <p class="note" id="gpu-note">GPU: not detected — cannot enable.</p>
+              <button class="primary" id="share-save" style="margin-top:1rem">Save sharing</button>
+              <p class="mono" id="share-status" style="margin-top:0.75rem;color:var(--muted)"></p>
+              <div id="hw-view" class="note" style="margin-top:1rem"></div>
+              <p class="note" style="margin-top:1rem"><strong>Wallet</strong> <span class="badge warn" id="wallet-status">NOT IMPLEMENTED</span></p>
             </div>
-            <p class="mono" id="dial-status" style="margin-top:0.75rem;color:var(--muted)"></p>
+            <div class="card">
+              <h2>Bootstrap dial</h2>
+              <p class="note">Dial a bootstrap peer by listen address. Identity and QUIC stay in the Rust core.</p>
+              <div class="row" style="margin-top:0.75rem">
+                <input id="dial-addr" placeholder="203.0.113.10:4433" />
+                <button class="primary" id="dial-btn">Dial</button>
+              </div>
+              <p class="mono" id="dial-status" style="margin-top:0.75rem;color:var(--muted)"></p>
+            </div>
           </div>
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
+      <footer>
+        <span id="status-mesh">Mesh: starting</span>
+        <span id="status-peers">Ready peers: —</span>
+        <span class="pill warn" id="wan-pill">PHYSICAL WAN VERIFIED — NOT TESTED</span>
+        <span id="status-listen"></span>
+      </footer>
+    </div>
 
     <script>
       const $ = (id) => document.getElementById(id);
+      const PAGE_TITLES = {
+        chat: "Chat",
+        peers: "Peers",
+        models: "Models",
+        tasks: "Tasks",
+        network: "Network",
+        settings: "Settings",
+      };
       let invoke = null;
       let generating = false;
       let activeId = null;
+      let conversations = [];
+      let pageLoad = { peers: false, models: false, tasks: false, network: false, convs: false };
 
       async function api(cmd, args = {}) {
         if (!invoke) {
@@ -398,75 +559,141 @@
         }[c]));
       }
 
+      function shortId(id) {
+        const s = String(id || "");
+        if (s.length <= 18) return s || "—";
+        return `${s.slice(0, 10)}…${s.slice(-6)}`;
+      }
+
       function badge(mode) {
         const m = (mode || "").toUpperCase();
         let cls = "badge";
-        if (m === "DIRECT" || m === "READY" || m === "TASK_RESULT" || m === "SUCCESS" || m === "ACTIVE") cls += " ok";
-        else if (m === "RELAY" || m.includes("NOT TESTED") || m === "ABSENT" || m === "PAUSED") cls += " warn";
-        else if (m === "FAILED" || m === "TASK_ERROR" || m === "TASK_TIMEOUT") cls += " bad";
-        return `<span class="${cls}">${m || "—"}</span>`;
+        if (["DIRECT", "READY", "TASK_RESULT", "SUCCESS", "ACTIVE", "CONNECTED"].includes(m)) cls += " ok";
+        else if (m === "RELAY" || m.includes("NOT TESTED") || ["ABSENT", "PAUSED", "TASK_OFFER"].includes(m)) cls += " warn";
+        else if (["FAILED", "TASK_ERROR", "TASK_TIMEOUT", "DISCONNECTED"].includes(m) || m.includes("ERROR")) cls += " bad";
+        return `<span class="${cls}">${esc(m || "—")}</span>`;
       }
 
-      function renderMessages(msgs) {
+      function stateBox(kind, title, detail, actionId) {
+        const retry = actionId
+          ? `<div style="margin-top:0.65rem"><button class="ghost" id="${actionId}">Retry</button></div>`
+          : "";
+        return `<div class="${kind}"><strong>${esc(title)}</strong>${detail ? `<div style="margin-top:0.35rem">${esc(detail)}</div>` : ""}${retry}</div>`;
+      }
+
+      function currentTitle() {
+        if (!activeId) return "No conversation selected";
+        const c = conversations.find((x) => x.conversation_id === activeId);
+        return c?.title || "Chat";
+      }
+
+      function renderMessages(msgs, opts = {}) {
         const log = $("chat-log");
         log.innerHTML = "";
-        if (!msgs?.length) {
+        $("chat-title").textContent = currentTitle();
+        if (opts.loading) {
           const el = document.createElement("div");
           el.className = "bubble meta";
-          el.textContent = "No messages in this conversation.";
+          el.textContent = "Loading messages…";
           log.appendChild(el);
           return;
         }
-        for (const m of msgs) {
+        if (opts.error) {
           const el = document.createElement("div");
-          const role = m.role === "assistant" ? "assistant" : m.role === "user" ? "user" : "meta";
-          el.className = `bubble ${role}`;
-          el.textContent = m.content || "";
+          el.className = "bubble error";
+          el.textContent = opts.error;
           log.appendChild(el);
+          return;
+        }
+        if (!activeId) {
+          const wrap = document.createElement("div");
+          wrap.className = "empty";
+          if (conversations.length) {
+            wrap.innerHTML = `<strong>Select a conversation</strong><div style="margin-top:0.35rem">Choose a thread in the sidebar, or start a new one.</div>`;
+          } else {
+            wrap.innerHTML = `<strong>No conversations yet</strong><div style="margin-top:0.35rem">Start a new conversation with Community AI.</div>`;
+          }
+          log.appendChild(wrap);
+          return;
+        }
+        if (!msgs?.length) {
+          const el = document.createElement("div");
+          el.className = "empty";
+          el.textContent = "No messages in this conversation.";
+          log.appendChild(el);
+        } else {
+          for (const m of msgs) {
+            const el = document.createElement("div");
+            const role = m.role === "assistant" ? "assistant" : m.role === "user" ? "user" : "system";
+            el.className = `bubble ${role}`;
+            el.textContent = m.content || "";
+            log.appendChild(el);
+          }
         }
         if (generating) {
           const el = document.createElement("div");
-          el.className = "bubble meta";
-          el.textContent = "Generating… waiting for completed mesh result (no live TOKEN_STREAM in this window).";
+          el.className = "generating";
+          el.innerHTML = `<span class="spinner"></span> Generating…`;
           log.appendChild(el);
         }
         log.scrollTop = log.scrollHeight;
       }
 
-      function renderHistory(convs) {
-        if (!convs?.length) {
-          $("conv-list").innerHTML = `<p class="empty">No conversations yet.</p>`;
+      function renderHistory(convs, err) {
+        if (err) {
+          $("conv-list").innerHTML = stateBox("err", "Unable to load conversations", String(err), "retry-convs");
+          const btn = $("retry-convs");
+          if (btn) btn.onclick = () => refresh();
           return;
         }
-        $("conv-list").innerHTML = convs.map((c) => {
+        if (!pageLoad.convs) {
+          $("conv-list").innerHTML = `<p class="loading">Loading conversations…</p>`;
+          return;
+        }
+        conversations = convs || [];
+        if (!conversations.length) {
+          $("conv-list").innerHTML = `<p class="empty">No conversations yet</p>`;
+          return;
+        }
+        $("conv-list").innerHTML = conversations.map((c) => {
           const active = c.conversation_id === activeId ? " active" : "";
           const when = c.updated_at ? new Date(Number(c.updated_at)).toLocaleString() : "";
-          return `<button class="hist-item${active}" data-id="${c.conversation_id}">
+          return `<button class="hist-item${active}" data-id="${esc(c.conversation_id)}">
             <span class="t">${esc(c.title || "Chat")}</span>
-            <span class="d">${when}</span>
+            <span class="d">${esc(when)}</span>
           </button>`;
         }).join("");
         $("conv-list").querySelectorAll(".hist-item").forEach((btn) => {
-          btn.addEventListener("click", async () => {
-            activeId = btn.dataset.id;
-            try {
-              await api("set_active_conversation", { id: activeId });
-              const msgs = await api("messages", { conversationId: activeId });
-              renderMessages(msgs);
-              renderHistory(convs);
-            } catch (e) {
-              $("chat-log").textContent = String(e);
-            }
-          });
+          btn.addEventListener("click", () => openConversation(btn.dataset.id));
         });
+      }
+
+      async function openConversation(id) {
+        activeId = id;
+        showPage("chat");
+        renderMessages([], { loading: true });
+        try {
+          await api("set_active_conversation", { id });
+          const msgs = await api("messages", { conversationId: id });
+          renderHistory(conversations);
+          renderMessages(msgs);
+        } catch (e) {
+          renderMessages([], { error: `Unable to load messages. ${e}` });
+        }
+      }
+
+      function showPage(name) {
+        document.querySelectorAll("nav button").forEach((b) => {
+          b.classList.toggle("active", b.dataset.panel === name);
+        });
+        document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
+        $(`panel-${name}`).classList.add("active");
+        $("page-title").textContent = name === "chat" ? currentTitle() : PAGE_TITLES[name];
       }
 
       document.querySelectorAll("nav button").forEach((btn) => {
         btn.addEventListener("click", () => {
-          document.querySelectorAll("nav button").forEach((b) => b.classList.remove("active"));
-          document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
-          btn.classList.add("active");
-          $(`panel-${btn.dataset.panel}`).classList.add("active");
+          showPage(btn.dataset.panel);
           refresh();
         });
       });
@@ -475,19 +702,23 @@
         try {
           const rec = await api("create_conversation");
           activeId = rec.conversation_id;
+          $("chat-error").hidden = true;
+          showPage("chat");
           renderMessages([]);
           refresh();
         } catch (e) {
-          $("chat-log").textContent = String(e);
+          renderMessages([], { error: `Unable to create conversation. ${e}` });
         }
       });
 
-      $("send").addEventListener("click", async () => {
+      async function sendPrompt() {
         const prompt = $("prompt").value.trim();
         if (!prompt || generating) return;
         generating = true;
         $("send").disabled = true;
+        $("chat-error").hidden = true;
         $("prompt").value = "";
+        showPage("chat");
         try {
           const existing = activeId ? await api("messages", { conversationId: activeId }) : [];
           renderMessages(existing);
@@ -497,18 +728,20 @@
             .map((a) => `Attempt ${a.attempt} → ${a.worker} → ${a.result}`)
             .join("\n");
           $("last-meta").innerHTML = `
-            <div><strong>Executor</strong> <span class="mono">${r.executor}</span></div>
-            <div style="margin-top:0.4rem">${badge(r.connection_mode)} · engine <span class="mono">${r.engine}</span></div>
-            <div class="mono" style="margin-top:0.5rem;color:var(--muted)">
+            <div><strong>Last inference</strong> executor <span class="mono">${esc(r.executor)}</span>
+            ${badge(r.connection_mode)} engine <span class="mono">${esc(r.engine)}</span></div>
+            <div class="mono" style="margin-top:0.35rem;color:var(--muted)">
               TTFT ${r.time_to_first_token_ms ?? "—"} ms · ${r.tokens?.length ?? 0} tokens ·
               ${Number(r.tokens_per_sec || 0).toFixed(2)} tok/s · ${r.total_ms} ms
             </div>
-            <pre class="mono" style="margin-top:0.75rem;white-space:pre-wrap;color:var(--muted)">${attempts || "single attempt"}</pre>
+            <pre class="mono" style="margin:0.5rem 0 0;white-space:pre-wrap;color:var(--muted)">${esc(attempts || "single attempt")}</pre>
           `;
         } catch (e) {
           const msg = String(e);
           const status = /timeout/i.test(msg) ? "TASK_TIMEOUT" : "TASK_ERROR";
-          $("last-meta").innerHTML = `<span class="badge bad">${status}</span> <span class="mono">${msg}</span>`;
+          $("chat-error").hidden = false;
+          $("chat-error").textContent = `Inference failed · ${status} · ${msg}`;
+          $("last-meta").innerHTML = `${badge(status)} <span class="mono">${esc(msg)}</span>`;
         } finally {
           generating = false;
           $("send").disabled = false;
@@ -516,9 +749,19 @@
             try {
               const msgs = await api("messages", { conversationId: activeId });
               renderMessages(msgs);
-            } catch (_) { /* SQLite reload is best-effort after send */ }
+            } catch (err) {
+              renderMessages([], { error: `Unable to reload messages. ${err}` });
+            }
           }
           refresh();
+        }
+      }
+
+      $("send").addEventListener("click", sendPrompt);
+      $("prompt").addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter" && !ev.shiftKey) {
+          ev.preventDefault();
+          sendPrompt();
         }
       });
 
@@ -564,7 +807,7 @@
         $("share-mem").value = s.memory_limit_mb ?? 2048;
         $("share-idle").checked = !!s.idle_only;
         const hw = v.hardware || {};
-        const gpuDetected = !!(hw.gpu_model);
+        const gpuDetected = !!hw.gpu_model;
         $("share-gpu").disabled = !gpuDetected;
         $("share-gpu").checked = gpuDetected && !!s.gpu_enabled;
         $("gpu-note").textContent = gpuDetected
@@ -572,110 +815,198 @@
           : "GPU: not detected — cannot enable.";
         $("hw-view").innerHTML = `
           <div><strong>Detected hardware</strong></div>
-          <div class="mono">CPU ${hw.cpu_model || "unknown"} · ${hw.cpu_cores ?? "—"} cores · ${Number(hw.cpu_usage_pct || 0).toFixed(0)}%</div>
+          <div class="mono">CPU ${esc(hw.cpu_model || "unknown")} · ${hw.cpu_cores ?? "—"} cores · ${Number(hw.cpu_usage_pct || 0).toFixed(0)}%</div>
           <div class="mono">RAM ${hw.memory_available_mb ?? "—"} / ${hw.memory_total_mb ?? "—"} MB available/total</div>
-          <div class="mono">GPU ${hw.gpu_model || "none"}</div>`;
+          <div class="mono">GPU ${esc(hw.gpu_model || "none")}</div>`;
       }
 
-      function renderPeers(peers) {
-        if (!peers?.length) {
-          $("peers-table").innerHTML = `<p class="empty">No authenticated peers yet. Dial from Settings or wait for discovery.</p>`;
+      function renderPeers(peers, err) {
+        if (err) {
+          $("peers-table").innerHTML = stateBox("err", "Unable to load peers", String(err), "retry-peers");
+          const btn = $("retry-peers");
+          if (btn) btn.onclick = () => refresh();
           return;
         }
-        $("peers-table").innerHTML = `<table>
+        if (!pageLoad.peers) {
+          $("peers-table").innerHTML = `<p class="loading">Loading peers…</p>`;
+          return;
+        }
+        if (!peers?.length) {
+          $("peers-table").innerHTML = stateBox(
+            "empty",
+            "No peers connected",
+            "Connect another Community AI peer to use distributed inference."
+          );
+          return;
+        }
+        $("peers-table").innerHTML = `<div class="table-wrap"><table>
           <thead><tr><th>Peer</th><th>State</th><th>Sharing</th><th>Mode</th><th>RTT</th><th>Endpoints</th><th>Models</th></tr></thead>
           <tbody>${peers.map((p) => `<tr>
-            <td class="mono">${p.peer_id}</td>
+            <td class="mono">${esc(p.peer_id)}</td>
             <td>${badge(p.state)}</td>
             <td>${badge(p.compute_sharing || "—")}</td>
             <td>${badge(p.connection_mode)}</td>
-            <td class="mono">${p.rtt_ms == null ? "—" : p.rtt_ms.toFixed(1) + " ms"}</td>
-            <td class="mono">${(p.endpoints || []).map((e) => `${e.kind} ${e.addr}`).join("<br>") || p.session_addr}</td>
-            <td class="mono">${(p.models || []).map((m) => `${m.model_id}:${m.state}`).join("<br>") || "—"}</td>
-          </tr>`).join("")}</tbody></table>`;
+            <td class="mono">${p.rtt_ms == null ? "—" : Number(p.rtt_ms).toFixed(1) + " ms"}</td>
+            <td class="mono">${(p.endpoints || []).map((e) => `${esc(e.kind)} ${esc(e.addr)}`).join("<br>") || esc(p.session_addr)}</td>
+            <td class="mono">${(p.models || []).map((m) => `${esc(m.model_id)}:${esc(m.state)}`).join("<br>") || "—"}</td>
+          </tr>`).join("")}</tbody></table></div>`;
       }
 
-      function renderModels(models) {
-        if (!models?.length) {
-          $("models-table").innerHTML = `<p class="empty">No models.</p>`;
+      function renderModels(models, err) {
+        if (err) {
+          $("models-table").innerHTML = stateBox("err", "Unable to load models", String(err), "retry-models");
+          const btn = $("retry-models");
+          if (btn) btn.onclick = () => refresh();
           return;
         }
-        $("models-table").innerHTML = `<table>
+        if (!pageLoad.models) {
+          $("models-table").innerHTML = `<p class="loading">Loading models…</p>`;
+          return;
+        }
+        if (!models?.length) {
+          $("models-table").innerHTML = stateBox("empty", "No models available", "Advertisements appear when a peer reports a READY model.");
+          return;
+        }
+        $("models-table").innerHTML = `<div class="table-wrap"><table>
           <thead><tr><th>Model</th><th>State</th><th>Runtime</th><th>Peer</th><th>Available</th></tr></thead>
           <tbody>${models.map((m) => `<tr>
-            <td class="mono">${m.model_id}</td>
+            <td class="mono">${esc(m.model_id)}</td>
             <td>${badge(m.state)}</td>
-            <td class="mono">${m.runtime} ${m.quantization}</td>
-            <td class="mono">${m.peer_id || "—"}</td>
+            <td class="mono">${esc(m.runtime)} ${esc(m.quantization)}</td>
+            <td class="mono">${esc(m.peer_id || "—")}</td>
             <td class="mono">${m.available ? "yes" : "no"}</td>
-          </tr>`).join("")}</tbody></table>`;
+          </tr>`).join("")}</tbody></table></div>`;
       }
 
-      function renderTasks(tasks) {
-        if (!tasks?.length) {
-          $("tasks-table").innerHTML = `<p class="empty">No originated tasks.</p>`;
+      function renderTasks(tasks, err) {
+        if (err) {
+          $("tasks-table").innerHTML = stateBox("err", "Unable to load tasks", String(err), "retry-tasks");
+          const btn = $("retry-tasks");
+          if (btn) btn.onclick = () => refresh();
           return;
         }
-        $("tasks-table").innerHTML = `<table>
+        if (!pageLoad.tasks) {
+          $("tasks-table").innerHTML = `<p class="loading">Loading tasks…</p>`;
+          return;
+        }
+        if (!tasks?.length) {
+          $("tasks-table").innerHTML = stateBox(
+            "empty",
+            "No tasks yet",
+            "Tasks will appear here when Community AI performs inference."
+          );
+          return;
+        }
+        $("tasks-table").innerHTML = `<div class="table-wrap"><table>
           <thead><tr><th>Task</th><th>Status</th><th>Model</th><th>Attempts</th><th>Executor</th></tr></thead>
           <tbody>${tasks.map((t) => `<tr>
-            <td class="mono">${t.task_id}<div style="color:var(--muted)">${t.prompt_preview}</div></td>
-            <td>${badge(t.status)}${t.error ? `<div class="mono" style="color:var(--bad)">${t.error}</div>` : ""}</td>
-            <td class="mono">${t.model_id}</td>
-            <td class="mono">${(t.attempts || []).map((a) => `Attempt ${a.attempt} → ${a.worker} → ${a.result}`).join("<br>") || "—"}</td>
-            <td class="mono">${t.executor || "—"} ${t.connection_mode ? badge(t.connection_mode) : ""}</td>
-          </tr>`).join("")}</tbody></table>`;
+            <td class="mono">${esc(t.task_id)}<div style="color:var(--muted)">${esc(t.prompt_preview)}</div></td>
+            <td>${badge(t.status)}${t.error ? `<div class="mono" style="color:var(--bad)">${esc(t.error)}</div>` : ""}</td>
+            <td class="mono">${esc(t.model_id)}</td>
+            <td class="mono">${(t.attempts || []).map((a) => `Attempt ${esc(a.attempt)} → ${esc(a.worker)} → ${esc(a.result)}`).join("<br>") || "—"}</td>
+            <td class="mono">${esc(t.executor || "—")} ${t.connection_mode ? badge(t.connection_mode) : ""}</td>
+          </tr>`).join("")}</tbody></table></div>`;
       }
 
-      function renderNetwork(n) {
-        if (!n) return;
+      function renderNetwork(n, err) {
+        if (err) {
+          $("network-view").innerHTML = stateBox("err", "Unable to load network", String(err), "retry-net");
+          const btn = $("retry-net");
+          if (btn) btn.onclick = () => refresh();
+          return;
+        }
+        if (!pageLoad.network || !n) {
+          $("network-view").innerHTML = `<p class="loading">Loading network…</p>`;
+          return;
+        }
         $("wan-pill").textContent = n.wan_status || "PHYSICAL WAN VERIFIED — NOT TESTED";
-        const eps = (n.endpoints || []).map((e) => `<div class="mono">${e.kind} ${e.addr}</div>`).join("");
+        const eps = (n.endpoints || []).map((e) => `<div class="mono">${esc(e.kind)} ${esc(e.addr)}</div>`).join("");
         const cons = (n.connections || []).map((c) => `<tr>
-          <td class="mono">${c.peer_id}</td>
+          <td class="mono">${esc(c.peer_id)}</td>
           <td>${badge(c.connection_mode)}</td>
-          <td class="mono">${c.session_addr}</td>
-          <td class="mono">${c.rtt_ms == null ? "—" : c.rtt_ms.toFixed(1)}</td>
-          <td class="mono">${c.evidence_class}</td>
+          <td class="mono">${esc(c.session_addr)}</td>
+          <td class="mono">${c.rtt_ms == null ? "—" : Number(c.rtt_ms).toFixed(1)}</td>
+          <td class="mono">${esc(c.evidence_class)}</td>
         </tr>`).join("");
         $("network-view").innerHTML = `
-          <div><strong>Local peer</strong> <span class="mono">${n.local_peer_id}</span></div>
-          <div style="margin-top:0.35rem"><strong>Listen</strong> <span class="mono">${n.listen_addr}</span> · ready peers ${n.ready_peers}</div>
+          <div><strong>Status</strong> Mesh started · transport QUIC</div>
+          <div style="margin-top:0.35rem"><strong>Local peer</strong> <span class="mono">${esc(n.local_peer_id)}</span></div>
+          <div style="margin-top:0.35rem"><strong>Listen</strong> <span class="mono">${esc(n.listen_addr)}</span></div>
+          <div style="margin-top:0.35rem"><strong>Connected / ready peers</strong> ${Number(n.ready_peers || 0)}</div>
           <div style="margin-top:0.75rem"><strong>Advertised endpoints</strong>${eps || '<div class="empty">none</div>'}</div>
-          <p class="note" style="margin-top:0.75rem">${n.evidence_note || ""}</p>
+          <p class="note" style="margin-top:0.75rem">${esc(n.evidence_note || "")}</p>
+          <div class="table-wrap">
           <table style="margin-top:0.75rem">
             <thead><tr><th>Peer</th><th>Mode</th><th>Session</th><th>RTT</th><th>Evidence</th></tr></thead>
             <tbody>${cons || '<tr><td colspan="5" class="empty">No connections</td></tr>'}</tbody>
-          </table>`;
+          </table></div>`;
+        $("status-listen").textContent = n.listen_addr ? `Listen ${n.listen_addr}` : "";
       }
 
       async function refresh() {
         try {
           const s = await api("session");
-          if (s.local_peer_id) $("local-peer").textContent = `peer: ${s.local_peer_id}`;
+          const started = !!s.started;
+          $("conn-dot").className = `status-dot ${started ? "ok" : ""}`;
+          $("conn-pill").textContent = started ? "mesh online" : "starting…";
+          $("status-mesh").textContent = started ? "Mesh: online" : "Mesh: starting";
+          if (s.local_peer_id) {
+            $("local-peer").textContent = shortId(s.local_peer_id);
+            $("local-peer").title = s.local_peer_id;
+          }
           if (s.wan_status) $("wan-pill").textContent = s.wan_status;
-          if (!s.started) return;
-          const [p, m, t, n, convs, res] = await Promise.all([
+          if (!started) return;
+
+          const results = await Promise.allSettled([
             api("peers"),
             api("models"),
             api("tasks"),
             api("network"),
             api("conversations"),
             api("resource"),
+            api("ready_peers"),
           ]);
-          renderPeers(p);
-          renderModels(m);
-          renderTasks(t);
-          renderNetwork(n);
-          renderResource(res, !document.activeElement || !document.activeElement.closest("#panel-settings"));
+          const val = (i) => (results[i].status === "fulfilled" ? results[i].value : null);
+          const err = (i) => (results[i].status === "rejected" ? results[i].reason : null);
+
+          pageLoad.peers = true;
+          pageLoad.models = true;
+          pageLoad.tasks = true;
+          pageLoad.network = true;
+          pageLoad.convs = true;
+
+          renderPeers(val(0), err(0));
+          renderModels(val(1), err(1));
+          renderTasks(val(2), err(2));
+          renderNetwork(val(3), err(3));
+          renderHistory(val(4) || [], err(4));
+          if (val(5)) {
+            renderResource(
+              val(5),
+              !document.activeElement || !document.activeElement.closest("#panel-settings")
+            );
+          }
+          const ready = val(6);
+          if (ready != null) $("status-peers").textContent = `Ready peers: ${ready}`;
+
           if (!activeId && s.active_conversation_id) activeId = s.active_conversation_id;
-          renderHistory(convs || []);
-          if (activeId && !generating) {
-            const msgs = await api("messages", { conversationId: activeId });
-            renderMessages(msgs);
+          if ($("panel-chat").classList.contains("active")) {
+            $("page-title").textContent = currentTitle();
+          }
+          if (activeId && !generating && $("panel-chat").classList.contains("active")) {
+            try {
+              const msgs = await api("messages", { conversationId: activeId });
+              renderMessages(msgs);
+            } catch (e) {
+              renderMessages([], { error: `Unable to load messages. ${e}` });
+            }
+          } else if (!activeId && !generating && $("panel-chat").classList.contains("active")) {
+            renderMessages([]);
           }
         } catch (e) {
-          $("local-peer").textContent = String(e);
+          $("conn-dot").className = "status-dot bad";
+          $("conn-pill").textContent = "IPC error";
+          $("status-mesh").textContent = String(e);
         }
       }
 
