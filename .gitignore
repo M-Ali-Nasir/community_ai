@@ -1,5 +1,6 @@
 # Rust build artifacts
 /target/
+apps/desktop/src-tauri/target/
 **/*.rs.bk
 
 # Node.js dependencies and build outputs
@@ -52,4 +53,21 @@ Thumbs.db
 *.db-wal
 *.db-shm
 **/storage/database/community.db
+
+# Packaging secrets (never commit)
+*.jks
+*.keystore
+
+# Built installers (hashes live in docs/release-builds.md)
+/release/*.AppImage
+/release/*.exe
+/release/*.msi
+/release/*.apk
+/release/*.aab
+/release/*.deb
+/release/*.rpm
+/release/*.sha256
+
+# Tauri ACL schemas regenerated on each host build
+apps/desktop/src-tauri/gen/schemas/
 

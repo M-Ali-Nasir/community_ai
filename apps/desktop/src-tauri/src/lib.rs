@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use community_app::{AppOptions, CommunityApp, ResourceSharingConfig};
-use tauri::State;
+use tauri::{Manager, State};
 use tokio::sync::Mutex;
 
 struct AppState {
@@ -153,6 +153,7 @@ async fn set_resource(
     .map_err(|e| e.to_string())
 }
 
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .manage(AppState {

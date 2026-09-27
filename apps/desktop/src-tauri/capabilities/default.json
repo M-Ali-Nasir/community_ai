@@ -1,0 +1,11 @@
+{
+  "identifier": "default",
+  "description": "Community AI desktop and mobile IPC",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "core:window:default",
+    "core:webview:default"
+  ]
+}

@@ -3,7 +3,11 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "build": "tauri build",
+    "build:linux": "tauri build --bundles appimage",
+    "build:windows": "tauri build --runner cargo-xwin --target x86_64-pc-windows-msvc --bundles nsis",
+    "build:android": "tauri android build --apk --target aarch64"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"
