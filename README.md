@@ -2,273 +2,317 @@
 
 <img src="dist/icon.png" alt="Community AI Logo" width="140" height="140" style="border-radius: 28px; box-shadow: 0 8px 30px rgba(255, 122, 0, 0.4);" />
 
-# 🌐 Community AI (v1.0)
+# Community AI
 
-**Decentralized, Heterogeneous, Zero-Knowledge AI Computing Mesh**
+**Version 1.0.0**
+
+**Decentralized peer-to-peer AI desktop/mobile application**
+
+Equal peers. Direct QUIC. Local durable storage. No central coordination server.
 
 [![Rust](https://img.shields.io/badge/Rust-1.80%2B-orange.svg?style=flat-square&logo=rust)](https://www.rust-lang.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue.svg?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-Apache--2.0-green.svg?style=flat-square)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Linux%20%7C%20Windows%20%7C%20macOS%20%7C%20iOS%20%7C%20Web-purple.svg?style=flat-square)](#-cross-platform-installation-guides-non-technical)
-[![P2P Mesh](https://img.shields.io/badge/Networking-P2P%20WebRTC%20%2B%20LAN%20Mesh-00f0d0.svg?style=flat-square)](#-how-the-p2p-mesh-works)
-
-*Turn everyday consumer devices—smartphones, laptops, gaming PCs, and workstations—into a united, privacy-preserving distributed supercomputer for Large Language Model inference.*
-
-> **Engineering status (2026-09-25):** This repository is a **prototype**. Desktop/Android packages currently wrap a browser/WebView UI; chat can use template responses; the marketed WebRTC P2P mesh is **not** the production network path yet. Authoritative status: [MISSION_CONTROL.md](MISSION_CONTROL.md) → [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) · [docs/IMPLEMENTATION_MATRIX.md](docs/IMPLEMENTATION_MATRIX.md).
-
----
+[![Version](https://img.shields.io/badge/Release-v1.0.0-blue.svg?style=flat-square)](https://github.com/M-Ali-Nasir/community_ai/releases/tag/v1.0.0)
 
 </div>
 
-## 📌 Table of Contents
+> **Evidence classes:** **VERIFIED** means this release produced evidence for that exact claim. **NOT TESTED** means no evidence. **NOT IMPLEMENTED** means the feature is not in v1.0.0. Do not treat BUILD success as INSTALL or RUNTIME success. Authoritative packaging notes: [docs/release-builds.md](docs/release-builds.md) · status: [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 
-- [🚀 Quick Download Links](#-quick-download-links-ready-to-use)
-- [📱 Cross-Platform Installation Guides (Non-Technical)](#-cross-platform-installation-guides-non-technical)
-  - [Android (Phones & Tablets)](#-android-installation)
-  - [Linux / Ubuntu Desktop](#-linux--ubuntu-desktop-installation)
-  - [Windows](#-windows-installation)
-  - [macOS](#-macos-installation)
-  - [Web Browser / iOS (PWA)](#-web-browser--ios-pwa-installation)
-- [✨ Everything About the App](#-everything-about-the-app)
-  - [1. Intelligent AI Chat](#1-intelligent-ai-chat)
-  - [2. Privacy-First Cluster Network](#2-privacy-first-cluster-network)
-  - [3. Real-Time Device Telemetry](#3-real-time-device-telemetry)
-  - [4. Background Worker Controls & Resource Governor](#4-background-worker-controls--resource-governor)
-- [🔒 Zero-Knowledge Privacy & Security](#-zero-knowledge-privacy--security)
-- [🏛 Technical Architecture & Crate Workspace](#-technical-architecture--crate-workspace)
-- [🛠 Developer & Build Guide](#-developer--build-guide)
-- [📜 Model Licensing & Policy](#-model-licensing--policy)
-- [📄 License](#-license)
+The **v1.0.0 GitHub Release has not been published yet**. Download URLs below are the intended asset locations. They become active after tag `v1.0.0` is published. Binaries are **not** stored in git (`release/` is gitignored).
 
 ---
 
-## 📦 Quick Download Links (Ready to Use)
+## Table of contents
 
-All pre-compiled packages and installation scripts are available directly in this repository in the [`dist/`](dist/) folder:
-
-| Operating System | Package / Artifact | Direct Link | Installation Type |
-| :--- | :--- | :--- | :--- |
-| **Android** | `CommunityAI.apk` | [⬇️ Download Android APK](dist/CommunityAI.apk) | 1-Tap Mobile App Installer |
-| **Ubuntu / Linux** | `install-desktop.sh` | [⬇️ Run Desktop Installer](dist/install-desktop.sh) | 1-Click Desktop & Menu Shortcut |
-| **Ubuntu / Linux** | `launch-app.sh` | [⬇️ Run Direct Launcher](dist/launch-app.sh) | Standalone Native App Window |
-| **All Platforms (WAN)** | `start-wan-mesh.sh` | [⬇️ LEGACY coordinator tunnel](dist/start-wan-mesh.sh) | **DEPRECATED** — not production WAN. Use `scripts/wan-inference-harness.sh` |
-| **Web / Browser** | Web PWA Build | [🌐 Launch Web App](community-ai/packages/web/) | Zero-Install Instant WebGPU |
-
----
-
-## 📱 Cross-Platform Installation Guides (Non-Technical)
-
-### 🤖 Android Installation
-
-You can install Community AI directly on any Android phone or tablet (Android 8.0+):
-
-#### Option A: Direct Download & Install on Phone (Easiest)
-1. Download [`dist/CommunityAI.apk`](dist/CommunityAI.apk) directly to your Android device (via browser or file transfer).
-2. Tap the downloaded `.apk` file in your notifications or Downloads folder.
-3. If prompted by Android, tap **"Settings"** and toggle **"Allow from this source"** to enable app installation.
-4. Tap **"Install"**, then tap **"Open"**.
-5. The Community AI app will launch with full access to the decentralized AI mesh!
-
-#### Option B: 1-Click Install via USB (from Computer)
-1. Connect your Android phone to your computer via USB with **USB Debugging** enabled in Developer Options.
-2. Open terminal in the project folder and run:
-   ```bash
-   ./dist/install-to-android.sh
-   ```
-3. The script will automatically detect your phone, install the latest APK, and launch the app.
+- [Download Community AI v1.0.0](#download-community-ai-v100)
+- [Platform verification](#platform-verification)
+- [Installation](#installation)
+- [Release checksums](#release-checksums)
+- [UI status](#ui-status)
+- [Architecture](#architecture)
+- [v1.0.0 release details](#v100-release-details)
+- [v1.0.0 release notes](#v100-release-notes)
+- [Security / trust model](#security--trust-model)
+- [Developer / release builds](#developer--release-builds)
+- [Crate workspace](#crate-workspace)
+- [Model licensing](#model-licensing)
+- [License](#license)
 
 ---
 
-### 🐧 Linux / Ubuntu Desktop Installation
+## Download Community AI v1.0.0
 
-For Ubuntu, Debian, Fedora, Arch, and other Linux distributions:
+Repository: [M-Ali-Nasir/community_ai](https://github.com/M-Ali-Nasir/community_ai)
 
-#### Option A: 1-Click Desktop App Integration (Recommended)
-1. Run the desktop installer script:
-   ```bash
-   ./dist/install-desktop.sh
-   ```
-2. **Done!** The app is now permanently registered into your system:
-   - Search **"Community AI"** in your Ubuntu Application Menu / Dash.
-   - Or double-click the **"Community AI"** shortcut on your Desktop.
+Intended release assets (tag `v1.0.0`):
 
-#### Option B: Direct Launcher
-Launch the standalone application window immediately:
+| Platform | Architecture | Artifact | Download |
+| -------- | ------------ | -------- | -------- |
+| Linux | x86_64 | `Community_AI-x86_64.AppImage` | [Download](https://github.com/M-Ali-Nasir/community_ai/releases/download/v1.0.0/Community_AI-x86_64.AppImage) |
+| Windows | x86_64 | `Community AI_1.0.0_x64-setup.exe` | [Download](https://github.com/M-Ali-Nasir/community_ai/releases/download/v1.0.0/Community%20AI_1.0.0_x64-setup.exe) |
+| Android | ARM64 | `Community-AI-1.0.0-Android-arm64-TEST.apk` | [Download](https://github.com/M-Ali-Nasir/community_ai/releases/download/v1.0.0/Community-AI-1.0.0-Android-arm64-TEST.apk) |
+
+All three packages use the same Tauri frontend (`apps/desktop/frontend/`). There is no separate Linux, Windows, or Android UI.
+
+### Linux x86_64 — AppImage
+
+- Asset: `Community_AI-x86_64.AppImage`
+- Build: **VERIFIED** · Install: **VERIFIED** · Runtime: **VERIFIED**
+- SHA256: `d1a219f3a779012cd8e5ee87543cf3c9dc9549a755510ec13ff3a4ceae7f0a99`
+
+### Windows x86_64 — NSIS installer
+
+- Asset: `Community AI_1.0.0_x64-setup.exe`
+- Build: **VERIFIED** · Install: **NOT TESTED** · Runtime: **NOT TESTED**
+- SHA256: `844be9921222c7d8a057ad9c5d5db546a81eb127b73d56611f4c3bd1643267b9`
+- Packaging was a Linux cross-compile. There was no Windows host, so installation and runtime were **not** verified. Authenticode signing was **not** performed.
+
+### Android ARM64 — TEST APK
+
+- Asset: `Community-AI-1.0.0-Android-arm64-TEST.apk`
+- Build: **VERIFIED** · Install: **NOT TESTED** · Runtime: **NOT TESTED** · Signing: **TEST**
+- SHA256: `ad51a127cfe74dedc9792db76cd3c580bae83c493d5e2de2e1bff6442afc90a6`
+- This is a **TEST / debug-signed** APK. It is **not** production-signed.
+- `adb devices` was empty during verification, so Android install and runtime were **not** verified.
+- The APK contains ARM64 native output (`lib/arm64-v8a/libcommunity_desktop_lib.so` only).
+- Desktop-oriented local `llama-server` spawning is **not** claimed to work on Android. No fake inference was added to compensate.
+
+macOS and iOS are **not** part of the v1.0.0 installable packages (**NOT TESTED**). Files under [`dist/`](dist/) (older APK/scripts) are **not** the v1.0.0 native packages.
+
+---
+
+## Platform verification
+
+| Platform | Architecture | Build    | Install    | Runtime    | Signing                    |
+| -------- | ------------ | -------- | ---------- | ---------- | -------------------------- |
+| Linux    | x86_64       | VERIFIED | VERIFIED   | VERIFIED   | N/A                        |
+| Windows  | x86_64       | VERIFIED | NOT TESTED | NOT TESTED | Authenticode not performed |
+| Android  | ARM64        | VERIFIED | NOT TESTED | NOT TESTED | TEST                       |
+
+---
+
+## Installation
+
+### Linux
+
 ```bash
-./dist/launch-app.sh
+chmod +x Community_AI-x86_64.AppImage
+./Community_AI-x86_64.AppImage
 ```
 
-#### Option C: Persistent 24/7 Background Service (Headless or Always-On)
-To contribute idle computing power silently in the background via systemd:
+For this release: Build **VERIFIED**, Install **VERIFIED**, Runtime **VERIFIED**.
+
+Observed on the packaging host (not extra configuration knobs):
+
+- The AppImage was copied out of the build tree to `/tmp` and launched from there.
+- Process `community-desktop` remained running.
+- WebKitGTK was mapped.
+- SQLite storage was created under `~/.local/share/community-ai/storage`.
+- Peer identity remained under `~/.config/community-ai/identity.key` (existing key reused; not regenerated on launch).
+
+If the AppImage cannot FUSE-mount, `APPIMAGE_EXTRACT_AND_RUN=1` is a known workaround (see [docs/release-builds.md](docs/release-builds.md)).
+
+### Windows
+
+1. Download `Community AI_1.0.0_x64-setup.exe`.
+2. Run the NSIS installer.
+3. Follow the installer instructions.
+4. Launch Community AI.
+
+**Windows installation and runtime were NOT TESTED for v1.0.0.**
+
+The installer is a real NSIS/Nullsoft PE. It wraps the x86_64 PE32+ `community-desktop.exe`. Authenticode signing was not performed because packaging ran on Linux. Do not treat the Windows build as runtime-verified.
+
+### Android
+
+**TEST BUILD — NOT PRODUCTION SIGNED**
+
+1. Download the ARM64 TEST APK.
+2. Transfer it to an ARM64 Android device.
+3. Allow installation from that source if Android requires it.
+4. Install the APK.
+
+**Android installation and runtime were NOT TESTED for v1.0.0.**
+
+Do not claim local model inference works on Android. The mesh/UI are packaged; desktop `llama-server` spawn is not a verified Android capability.
+
+---
+
+## Release checksums
+
+| Platform       | Artifact                                    | SHA256                                                             |
+| -------------- | ------------------------------------------- | ------------------------------------------------------------------ |
+| Linux x86_64   | `Community_AI-x86_64.AppImage`              | `d1a219f3a779012cd8e5ee87543cf3c9dc9549a755510ec13ff3a4ceae7f0a99` |
+| Windows x86_64 | `Community AI_1.0.0_x64-setup.exe`          | `844be9921222c7d8a057ad9c5d5db546a81eb127b73d56611f4c3bd1643267b9` |
+| Android ARM64  | `Community-AI-1.0.0-Android-arm64-TEST.apk` | `ad51a127cfe74dedc9792db76cd3c580bae83c493d5e2de2e1bff6442afc90a6` |
+
+Linux / macOS:
+
 ```bash
-sudo ./platform/linux/install.sh
-```
-- **Check Status**: `sudo systemctl status community-ai`
-- **View Live Logs**: `sudo journalctl -u community-ai -f`
-
----
-
-### 🪟 Windows Installation
-
-1. **Web / PWA Standalone Mode**:
-   - Start or open the web dashboard in Google Chrome or Microsoft Edge (`http://localhost:5173` or your mesh IP).
-   - Click the **"Install App"** icon in the address bar (or menu $\rightarrow$ *Apps* $\rightarrow$ *Install Community AI*).
-   - Community AI will now run in its own dedicated, borderless window with desktop shortcuts.
-2. **Persistent Background Service**:
-   - Register the native daemon using Windows Service Controller with `platform/windows/service_config.json`.
-
----
-
-### 🍎 macOS Installation
-
-1. **Web / PWA Standalone Mode**:
-   - Open the web interface in Safari or Google Chrome.
-   - In Safari: Click **File** $\rightarrow$ **Add to Dock**.
-2. **Background Daemon (Apple Silicon & Intel)**:
-   - Copy the launchd plist descriptor:
-     ```bash
-     cp platform/macos/com.community.ai.daemon.plist ~/Library/LaunchAgents/
-     launchctl load ~/Library/LaunchAgents/com.community.ai.daemon.plist
-     ```
-
----
-
-### 🌐 Web Browser / iOS (PWA) Installation
-
-Community AI runs directly inside modern web browsers with WebGPU support:
-1. Open the web client on your iPhone, iPad, or Chromebook.
-2. On iOS (Safari): Tap the **Share** button $\rightarrow$ Tap **"Add to Home Screen"**.
-3. Launch Community AI from your home screen just like a native app.
-
----
-
-## ✨ Everything About the App
-
-Community AI brings consumer-grade distributed intelligence to your fingertips through four unified tabs:
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  🌐 Community AI       [● P2P Mesh: 4 Nodes Online]   [⚡ Contributing: ON] │
-├───────────────┬───────────────────┬───────────────────┬─────────────────────┤
-│  💬 AI Chat   │ 📊 Device Monitor │ ⚙️ Worker Control │ 🌐 Cluster Network  │
-└───────────────┴───────────────────┴───────────────────┴─────────────────────┘
+sha256sum Community_AI-x86_64.AppImage
 ```
 
-### 1. 💬 Intelligent AI Chat
-- **Real-Time Token Streaming**: Prompt the decentralized AI cluster and receive high-speed streaming responses.
-- **Staged Visual Progress**: Clear real-time status steps:
-  - 🔍 *Searching for capable peers in mesh...*
-  - ⚡ *Partitioning layers & allocating pooled VRAM across devices...*
-  - 🤖 *Generating tokens across cluster...*
-- **Visual Pipeline Inspector**: View how transformer layers are partitioned across participating devices in real time.
+Windows PowerShell:
 
-### 2. 🌐 Privacy-First Cluster Network
-- **Zero Exposure of Personal Data**: Individual user information and device identities are never exposed to other peers.
-- **Aggregated Network Intelligence**:
-  - **Connected Mesh Peers**: Total nodes active in the swarm.
-  - **Active Contributors**: Nodes currently contributing compute resources.
-  - **Pooled VRAM / RAM Capacity**: Total combined memory available for model loading.
-  - **Cluster Tokens Streamed**: Total network throughput and jobs completed.
-- **Your Personal Token Account**:
-  - Live track of your **Available Balance**, **Tokens Earned** by contributing, and **Tokens Consumed** by prompts.
-  - Ready for decentralized ledger synchronization.
-- **Anonymized Activity Stream**: Real-time ticker of network jobs without displaying user identities.
+```powershell
+Get-FileHash ".\Community AI_1.0.0_x64-setup.exe" -Algorithm SHA256
+```
 
-### 3. 📊 Real-Time Device Telemetry
-- **Hardware Dashboard**: Live monitoring of CPU cores, system RAM, GPU acceleration, and VRAM utilization.
-- **UEPS Metric (User Experience Preservation Score)**: Continuous 0–100% score calculating local device responsiveness.
-- **Thermal & Battery States**: Automatically detects AC power vs. battery mode to prevent battery drain on laptops and phones.
-
-### 4. ⚙️ Background Worker Controls & Resource Governor
-- **Master Contribution Switch**: Toggle background compute sharing on or off with a single click.
-- **Memory & Quota Sliders**: Set exact caps on how much RAM or VRAM the app is allowed to allocate (e.g., 2 GB, 4 GB).
-- **Intelligent Resource Governor**:
-  - Automatically pauses compute if you start playing a video game or open a heavy application.
-  - Immediately yields resources when moving on battery power.
+The hash must match the table exactly. Recalculate only against the same file that was released; do not assume a rebuilt binary has the same digest.
 
 ---
 
-## 🔒 Zero-Knowledge Privacy & Security
+## UI status
 
-Community AI is built from the ground up on zero-trust principles:
-1. **Cryptographic Node Identities**: Every device generates its own Ed25519 public/private keypair. Wire payloads and task completions are digitally signed.
-2. **BLAKE3 Layer Verification**: Model weights and transformer shards are validated using BLAKE3 cryptographic checksums before execution.
-3. **Anonymized Peer IDs**: In all chat visualizers and telemetry panels, peer node identities are masked (`Anonymous Peer #1`, `Head Cluster Peer`) so no user's private data is ever visible to others.
-4. **No Centralized Data Logging**: Chat prompts and activations are passed directly peer-to-peer over encrypted WebRTC DataChannels and local loops.
+The **universal responsive UI** is preserved: one frontend (`apps/desktop/frontend/`) packaged through Tauri for all three platforms.
+
+| Form factor | Status |
+| ----------- | ------ |
+| Desktop | Source preserved. Linux window launch **VERIFIED**. Native interactive clicks through Chat / Peers / Models / Tasks / Network / Settings were **not** fully performed (Wayland screenshot portal returned `AccessDenied`). |
+| Tablet | Source preserved. Physical tablet **NOT TESTED**. |
+| Mobile | Source preserved. Android viewport/device **NOT TESTED**. |
+
+Responsive **source / CSS viewport** checks (not device testing) included approximately: 390×844, 360×800, 768×1024, 1024×680, 1280×800, 1440×900, 1920×1080, and ~844×390 landscape.
+
+Do not say the Android UI has been verified.
 
 ---
 
-## 🏛 Technical Architecture & Crate Workspace
+## Architecture
+
+v1.0.0 production path:
+
+```text
+Tauri UI → CommunityApp → MeshSwarm → QUIC → peer → real model runtime → QUIC → originator → Tauri UI
+```
+
+Peers are equal. A peer coordinates only a task it originated. There is no central server, central database, master node, or permanent coordinator.
+
+| Component               | Status          |
+| ----------------------- | --------------- |
+| Central server          | NOT IMPLEMENTED |
+| Central database        | NOT IMPLEMENTED |
+| Master node             | NOT IMPLEMENTED |
+| Permanent coordinator   | NOT IMPLEMENTED |
+| Direct QUIC             | PRESERVED       |
+| Real model execution    | PRESERVED       |
+| Local durable storage   | PRESERVED       |
+| Compute receipts        | NOT IMPLEMENTED |
+| Wallet / credits        | NOT IMPLEMENTED |
+| P2P storage replication | NOT IMPLEMENTED |
+| Distributed training    | NOT IMPLEMENTED |
+
+Native UI surfaces Chat, Peers, Models, Tasks, Network, and Settings over Tauri IPC into `community-app`. Chat uses real mesh inference when a READY worker exists; it does not invent assistant tokens. **PHYSICAL WAN VERIFIED — NOT TESTED.**
+
+---
+
+## v1.0.0 release details
+
+```text
+Version: 1.0.0
+
+Packaging branch:
+community-ai-app-bundles
+
+Source branch:
+community_ai_v1
+
+Source commit:
+2e2caa3d33e9292b1db48be7ae0454904b1db9ef
+
+Packaging commit:
+df61ab2f3d10bfa7a30daa435347810fdfbe835f
+```
+
+Identifier: `ai.community.desktop` · product name: Community AI
+
+Tests:
+
+```text
+cargo fmt: PASS
+cargo test --workspace: PASS
+Frontend validation: NOT AVAILABLE
+```
+
+---
+
+## v1.0.0 release notes
+
+- Cross-platform packaging added (Linux AppImage, Windows NSIS `.exe`, Android ARM64 TEST APK).
+- Linux AppImage produced; install and runtime launch **VERIFIED**.
+- Windows x86_64 installer produced; Windows install/runtime **NOT TESTED**.
+- Android ARM64 test APK produced; Android install/runtime **NOT TESTED**.
+- Universal responsive UI preserved.
+- Existing decentralized architecture preserved.
+- No central server, central database, or master node introduced.
+- Compute receipts, wallet/credits, P2P storage replication, and distributed training remain **future work** (**NOT IMPLEMENTED**).
+
+---
+
+## Security / trust model
+
+Implemented and used by the native app (not a guarantee of anonymity, perfect privacy, or proof of correct model computation):
+
+- Ed25519 peer identity (`NodeIdentity`, local identity file)
+- Signed append-only events
+- Local durable storage (SQLite + content-addressed objects)
+- Private local data encryption where implemented in `community-storage`
+- Direct QUIC peer communication (opaque relay is optional, not a central app server)
+
+Not claimed for v1.0.0: anonymous networking, production-grade Windows Authenticode or Android Play signing, cryptographic proof of correct inference, or PHYSICAL WAN verification.
+
+---
+
+## Developer / release builds
+
+Release packages are the existing Tauri app (`apps/desktop/`), not a second frontend. Low-level commands, toolchain versions, and packaging workarounds: **[docs/release-builds.md](docs/release-builds.md)**.
+
+```bash
+git clone https://github.com/M-Ali-Nasir/community_ai.git
+cd community_ai
+cargo test --workspace
+cd apps/desktop
+npm install
+npx tauri build --bundles appimage   # Linux
+```
+
+Build-environment notes (packaging host, **not** end-user install requirements):
+
+- Distro `-dev` packages (pkg-config / WebKitGTK headers) were missing; the Linux binary was linked against a user-space sysroot.
+- AppImage packing used linuxdeploy without the GTK plugin.
+- Cross Windows NSIS required `clang-cl` / `lld-link` and `NSISDIR` for `makensis` (Debian `PREFIX_DATA` is `/usr/share/nsis`).
+
+Workspace tests do not compile `apps/desktop/src-tauri` (it is excluded so GTK is not required for `cargo test --workspace`).
+
+---
+
+## Crate workspace
 
 ```
 crates/
-├── community-core          # Strong identifiers (NodeId, JobId, TaskId) & domain primitives
-├── community-security      # Ed25519 digital signatures, keypairs & BLAKE3 checksums
-├── community-protocol      # Serde wire schemas (CapabilityProfile, PipelinePlan, TaskSpec)
-├── community-governor      # Sub-second hardware monitors & User Experience Preservation (UEPS)
-├── community-model-manager # Discrete layer sharder, LRU disk cache & placement scoring
-├── community-runtime       # Abstract AIBackend trait for hardware-agnostic tensor execution
-├── community-scheduler     # Workload analyzer, minimal-latency pipeline planner & failover
-├── community-network       # Thread-safe P2P swarm, mDNS/DHT discovery & network loops
-├── community-daemon        # Native background worker daemon CLI for Windows / Linux / macOS
-├── community-simulator     # Discrete event cluster simulator (tested with 10–1000 nodes)
-└── community-ffi           # C-FFI export library (cdylib/staticlib) for Android & iOS
+├── community-core
+├── community-security      # Ed25519 identities, BLAKE3
+├── community-protocol
+├── community-governor
+├── community-model-manager
+├── community-runtime       # llama.cpp via llama-server on desktop when a GGUF is configured
+├── community-scheduler
+├── community-network       # MeshSwarm, QUIC
+├── community-storage       # peer-local SQLite + objects
+├── community-app           # native session API used by Tauri
+├── community-daemon
+├── community-simulator
+└── community-ffi
 ```
 
 ---
 
-## 🛠 Developer & Build Guide
+## Model licensing
 
-### Prerequisites
-- **Rust 1.80+** (`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`)
-- **Node.js 20+** and `npm`
-- **Android SDK & NDK** (only if compiling Android native binaries)
-
-### 1. Build and Test Rust Core
-```bash
-# Clone the repository
-git clone https://github.com/M-Ali-Nasir/community_ai.git
-cd community_ai
-
-# Run all unit, integration, and P2P mesh tests across all 11 crates
-cargo test --workspace
-```
-
-### 2. Run the Web Dashboard & P2P Coordinator
-```bash
-cd community-ai
-npm install
-
-# Start development server
-npm run dev
-```
-
-### 3. Rebuild the Android APK
-```bash
-# Compile web assets
-npm --prefix community-ai/packages/web run build
-
-# Copy assets to Android project
-mkdir -p platform/android/app/src/main/assets/www
-cp -r community-ai/packages/web/dist/* platform/android/app/src/main/assets/www/
-
-# Build APK using Gradle
-cd platform/android
-./gradlew assembleDebug
-cp app/build/outputs/apk/debug/app-debug.apk ../../dist/CommunityAI.apk
-```
+This project uses Apache-2.0 / MIT-compatible model choices where models are configured. No cloud account is required to run the peer. Default local model id in the desktop session is a configured GGUF path when present; empty model state is shown honestly until advertised.
 
 ---
 
-## 📜 Model Licensing & Policy
-
-This project strictly adheres to **Apache-2.0 and MIT** open-source licensing:
-- **Flagship Default**: `Qwen/Qwen3-14B-Instruct` (Apache-2.0)
-- **Lightweight / Mobile Models**: `SmolLM2-360M-Instruct` (Apache-2.0), `Qwen2.5-0.5B-Instruct` (Apache-2.0)
-- **Zero-Gated Architecture**: No models with restrictive commercial agreements or mandatory account sign-ins are required.
-
----
-
-## 📄 License
+## License
 
 Distributed under the **Apache-2.0 License**. See [LICENSE](LICENSE) for full details.
