@@ -65,7 +65,8 @@ Classification legend:
 | `community-network` `MeshSwarm` | REAL | QUIC + handshake + WAN endpoints + gossip + tasks + originator reassign |
 | `community-network` STUN | PARTIAL | RFC 5389 client; live public STUN **NOT TESTED** |
 | `community-network` relay | PARTIAL | Opaque UDP forward **PROCESS VERIFIED**; WAN hole-punch **NOT TESTED** |
-| `community-app` | REAL (API) | Native mesh session; peers/network/models/tasks/chat views; CPU/memory graphs **removed** from UI |
+| `community-app` | REAL (API) | Native mesh session; peers/network/models/tasks/chat/history/resource views; CPU/memory graphs **removed**; wallet **NOT IMPLEMENTED** |
+| `community-storage` | REAL (local) | SQLite WAL + objects + signed events; schema v2 `peer_settings`; P2P replication **not implemented** |
 | `community-network` `InMemorySwarm` | SIMULATED | Test utility only |
 | `community-daemon` | REAL (mesh + optional llama) | `--model` loads GGUF; no coordinator |
 | `community-simulator` | SIMULATED | Intentional cluster CLI |

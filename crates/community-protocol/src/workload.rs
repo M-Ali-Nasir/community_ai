@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use community_core::{JobId, NodeId, TaskId};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]

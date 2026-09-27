@@ -67,8 +67,7 @@ pub fn classify_connection_mode(
 ) -> ConnectionMode {
     let matches_relay = |eps: &[NetEndpoint]| {
         eps.iter().any(|e| {
-            e.kind == EndpointKind::Relay
-                && e.socket_addr().is_some_and(|a| a == session_addr)
+            e.kind == EndpointKind::Relay && e.socket_addr().is_some_and(|a| a == session_addr)
         })
     };
     if matches_relay(their_endpoints) || matches_relay(our_endpoints) {
@@ -117,11 +116,7 @@ mod tests {
     #[test]
     fn relay_session_is_not_called_direct() {
         let relay: SocketAddr = "203.0.113.8:54001".parse().unwrap();
-        let eps = vec![NetEndpoint::new(
-            EndpointKind::Relay,
-            relay,
-            0,
-        )];
+        let eps = vec![NetEndpoint::new(EndpointKind::Relay, relay, 0)];
         assert_eq!(
             classify_connection_mode(relay, &eps, &[]),
             ConnectionMode::Relay
@@ -137,9 +132,6 @@ mod tests {
     fn loopback_is_process_not_wan() {
         let a: SocketAddr = "127.0.0.1:1".parse().unwrap();
         let b: SocketAddr = "127.0.0.1:2".parse().unwrap();
-        assert_eq!(
-            evidence_class_for(a, b),
-            EvidenceClass::ProcessVerified
-        );
+        assert_eq!(evidence_class_for(a, b), EvidenceClass::ProcessVerified);
     }
 }

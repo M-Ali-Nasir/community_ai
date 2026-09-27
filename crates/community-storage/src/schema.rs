@@ -1,4 +1,4 @@
-pub const CURRENT_VERSION: i64 = 1;
+pub const CURRENT_VERSION: i64 = 2;
 
 pub const MIGRATION_V1: &str = r#"
 CREATE TABLE schema_migrations (
@@ -106,4 +106,12 @@ CREATE TABLE training_candidates (
 CREATE INDEX idx_messages_conversation ON messages(conversation_id, sequence);
 CREATE INDEX idx_tasks_created ON tasks(created_at DESC);
 CREATE INDEX idx_events_author_seq ON events(author_peer_id, sequence);
+"#;
+
+pub const MIGRATION_V2: &str = r#"
+CREATE TABLE peer_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+);
 "#;

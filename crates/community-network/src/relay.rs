@@ -47,7 +47,9 @@ pub fn parse_alloc_ok(pkt: &[u8], pubkey: &[u8; 32]) -> Result<SocketAddr> {
         return Err(CommunityError::Network("relay alloc bad header".into()));
     }
     if &pkt[6..38] != pubkey {
-        return Err(CommunityError::Network("relay alloc pubkey mismatch".into()));
+        return Err(CommunityError::Network(
+            "relay alloc pubkey mismatch".into(),
+        ));
     }
     let v6 = &pkt[38..54];
     let port = u16::from_be_bytes([pkt[54], pkt[55]]);

@@ -1,10 +1,10 @@
 //! Cryptographic security primitives for Community AI.
 //! Provides Ed25519 node identities, payload signing, and BLAKE3 integrity verification.
 
+use community_core::{CommunityError, Result};
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
-use community_core::{CommunityError, Result};
 
 /// Cryptographic identity of a participating node.
 #[derive(Clone)]
@@ -88,8 +88,9 @@ impl NodeIdentity {
     }
 
     pub fn load(path: &std::path::Path) -> Result<Self> {
-        let text = std::fs::read_to_string(path)
-            .map_err(|e| CommunityError::Config(format!("read identity {}: {e}", path.display())))?;
+        let text = std::fs::read_to_string(path).map_err(|e| {
+            CommunityError::Config(format!("read identity {}: {e}", path.display()))
+        })?;
         let hex_str = text
             .lines()
             .find(|l| !l.trim().is_empty() && !l.trim().starts_with('#'))
@@ -118,8 +119,9 @@ impl NodeIdentity {
             "# community-ai ed25519 seed — do not share\n{}\n",
             hex::encode(self.seed_bytes())
         );
-        std::fs::write(path, body)
-            .map_err(|e| CommunityError::Config(format!("write identity {}: {e}", path.display())))?;
+        std::fs::write(path, body).map_err(|e| {
+            CommunityError::Config(format!("write identity {}: {e}", path.display()))
+        })?;
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
@@ -164,7 +166,9 @@ impl SignedEnvelope {
             .map_err(|e| CommunityError::Security(format!("Invalid signature hex: {e}")))?;
 
         if pk_bytes.len() != 32 || sig_bytes.len() != 64 {
-            return Err(CommunityError::Security("Malformed cryptographic key/sig length".into()));
+            return Err(CommunityError::Security(
+                "Malformed cryptographic key/sig length".into(),
+            ));
         }
 
         let mut pk_arr = [0u8; 32];
@@ -185,9 +189,8 @@ impl SignedEnvelope {
 /// BLAKE3 of a file streamed from disk (GGUF weights).
 pub fn hash_file_blake3(path: &std::path::Path) -> Result<String> {
     use std::io::Read;
-    let mut file = std::fs::File::open(path).map_err(|e| {
-        CommunityError::Config(format!("open {} for hash: {e}", path.display()))
-    })?;
+    let mut file = std::fs::File::open(path)
+        .map_err(|e| CommunityError::Config(format!("open {} for hash: {e}", path.display())))?;
     let mut hasher = blake3::Hasher::new();
     let mut buf = vec![0u8; 1024 * 1024];
     loop {

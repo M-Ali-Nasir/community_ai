@@ -26,12 +26,13 @@ pub async fn read_frame(recv: &mut RecvStream, max_bytes: usize) -> Result<MeshF
         .map_err(|e| CommunityError::Network(format!("read len: {e}")))?;
     let len = u32::from_be_bytes(len_buf) as usize;
     if len == 0 || len > max_bytes {
-        return Err(CommunityError::Network(format!("invalid frame length {len}")));
+        return Err(CommunityError::Network(format!(
+            "invalid frame length {len}"
+        )));
     }
     let mut body = vec![0u8; len];
     recv.read_exact(&mut body)
         .await
         .map_err(|e| CommunityError::Network(format!("read body: {e}")))?;
-    serde_json::from_slice(&body)
-        .map_err(|e| CommunityError::Network(format!("json decode: {e}")))
+    serde_json::from_slice(&body).map_err(|e| CommunityError::Network(format!("json decode: {e}")))
 }

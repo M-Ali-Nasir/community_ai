@@ -1,10 +1,10 @@
 //! Resource Governor & User Experience Preservation (UEPS) engine.
 //! Ensures user tasks always take absolute priority over community AI compute.
 
-use serde::{Deserialize, Serialize};
-use sysinfo::{CpuRefreshKind, MemoryRefreshKind, RefreshKind, System};
-use std::time::{Duration, Instant};
 use community_protocol::{ThermalState, UserActivity};
+use serde::{Deserialize, Serialize};
+use std::time::{Duration, Instant};
+use sysinfo::{CpuRefreshKind, MemoryRefreshKind, RefreshKind, System};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -99,7 +99,11 @@ impl ResourceGovernor {
 
         // Compute User Experience Preservation Score (UEPS)
         let cpu_contention = (cpu_usage / 100.0).clamp(0.0, 1.0);
-        let mem_contention = if available_mem < self.config.min_free_ram_mb { 0.8 } else { 0.0 };
+        let mem_contention = if available_mem < self.config.min_free_ram_mb {
+            0.8
+        } else {
+            0.0
+        };
         let ueps = (1.0 - (0.5 * cpu_contention + 0.5 * mem_contention)).clamp(0.0, 1.0);
 
         // State Machine & Capacity derivation
@@ -137,6 +141,51 @@ impl ResourceGovernor {
 
     pub fn current_state(&self) -> GovernorState {
         self.current_state
+    }
+}
+
+/// What the host actually reports. GPU fields stay None unless detected.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HardwareSnapshot {
+    pub cpu_model: String,
+    pub cpu_cores: usize,
+    pub cpu_usage_pct: f32,
+    pub memory_total_mb: u64,
+    pub memory_available_mb: u64,
+    pub gpu_vendor: Option<String>,
+    pub gpu_model: Option<String>,
+    pub gpu_vram_mb: Option<u64>,
+}
+
+impl HardwareSnapshot {
+    pub fn detect() -> Self {
+        let mut system = System::new_with_specifics(
+            RefreshKind::new()
+                .with_cpu(CpuRefreshKind::everything())
+                .with_memory(MemoryRefreshKind::everything()),
+        );
+        system.refresh_cpu_all();
+        system.refresh_memory();
+        let brand = system
+            .cpus()
+            .first()
+            .map(|c| c.brand().trim().to_string())
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "unknown".into());
+        Self {
+            cpu_model: brand,
+            cpu_cores: system.cpus().len().max(1),
+            cpu_usage_pct: system.global_cpu_usage(),
+            memory_total_mb: system.total_memory() / 1024 / 1024,
+            memory_available_mb: system.available_memory() / 1024 / 1024,
+            gpu_vendor: None,
+            gpu_model: None,
+            gpu_vram_mb: None,
+        }
+    }
+
+    pub fn gpu_detected(&self) -> bool {
+        self.gpu_model.is_some()
     }
 }
 

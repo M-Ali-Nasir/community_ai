@@ -204,7 +204,9 @@ impl InMemorySwarm {
                 self.registry
                     .upsert_peer(profile.clone(), from_addr, verified)
                     .await;
-                let _ = self.event_tx.send(SwarmEvent::PeerDiscovered(node_id, profile));
+                let _ = self
+                    .event_tx
+                    .send(SwarmEvent::PeerDiscovered(node_id, profile));
             }
             PeerMessage::P2PGossip { known_peers, .. } => {
                 let my_node_id = self.identity.node_id();
@@ -212,7 +214,9 @@ impl InMemorySwarm {
                     if peer.node_id != my_node_id {
                         let node_id = peer.node_id.clone();
                         self.registry.upsert_peer(peer.clone(), None, true).await;
-                        let _ = self.event_tx.send(SwarmEvent::PeerDiscovered(node_id, peer));
+                        let _ = self
+                            .event_tx
+                            .send(SwarmEvent::PeerDiscovered(node_id, peer));
                     }
                 }
             }
@@ -304,6 +308,8 @@ mod tests {
             rpc: None,
             cached_shards: vec!["qwen3-14b_shard_000".to_string()],
             models: vec![],
+            compute_sharing_enabled: true,
+            supported_shard_ranges: vec![],
         }
     }
 
@@ -351,8 +357,9 @@ mod tests {
             .send_direct(&id_b.node_id(), activation_msg)
             .await
             .unwrap());
-        if let Some(SwarmEvent::ActivationReceived { job_id, hop, data, .. }) =
-            swarm_b_ref.next_event().await
+        if let Some(SwarmEvent::ActivationReceived {
+            job_id, hop, data, ..
+        }) = swarm_b_ref.next_event().await
         {
             assert_eq!(job_id.as_str(), "job-123");
             assert_eq!(hop, 1);

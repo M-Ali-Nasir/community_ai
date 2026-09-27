@@ -48,7 +48,9 @@ impl Scheduler {
             .collect();
 
         if candidates.is_empty() {
-            return Err(CommunityError::ResourceExhausted("No nodes available for pipeline".into()));
+            return Err(CommunityError::ResourceExhausted(
+                "No nodes available for pipeline".into(),
+            ));
         }
 
         // Sort candidates by lowest network latency first
@@ -165,6 +167,8 @@ mod tests {
             }),
             cached_shards: vec![],
             models: vec![],
+            compute_sharing_enabled: true,
+            supported_shard_ranges: vec![],
         }
     }
 

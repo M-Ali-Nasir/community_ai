@@ -100,9 +100,61 @@
         gap: 1rem;
         min-height: 0;
       }
+      .grid-chat {
+        display: grid;
+        grid-template-columns: 220px 1.4fr 1fr;
+        gap: 1rem;
+        min-height: 0;
+      }
+      @media (max-width: 1100px) {
+        .grid-chat { grid-template-columns: 1fr; }
+      }
       @media (max-width: 900px) {
         .grid-2 { grid-template-columns: 1fr; }
         .peer-chip { display: none; }
+      }
+      .hist-item {
+        width: 100%;
+        text-align: left;
+        background: transparent;
+        border: 1px solid transparent;
+        color: var(--text);
+        padding: 0.55rem 0.6rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font: inherit;
+      }
+      .hist-item:hover, .hist-item.active {
+        background: #2a221c;
+        border-color: var(--line);
+      }
+      .hist-item .t {
+        display: block;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .hist-item .d {
+        display: block;
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        color: var(--muted);
+        margin-top: 0.15rem;
+      }
+      .share-pill {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        padding: 0.28rem 0.55rem;
+        border-radius: 4px;
+        border: 1px solid var(--line);
+      }
+      label.field {
+        display: grid;
+        gap: 0.3rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+        margin-top: 0.75rem;
       }
       .card {
         background: var(--panel);
@@ -225,12 +277,18 @@
         <button data-panel="network">Network</button>
         <button data-panel="settings">Settings</button>
       </nav>
+      <span class="share-pill" id="share-pill">sharing: …</span>
       <span class="wan-pill" id="wan-pill">PHYSICAL WAN VERIFIED — NOT TESTED</span>
       <span class="peer-chip mono" id="local-peer">peer: starting…</span>
     </header>
     <main>
       <section class="panel active" id="panel-chat">
-        <div class="grid-2">
+        <div class="grid-chat">
+          <div class="card">
+            <h2>History</h2>
+            <button class="primary" id="new-chat" style="width:100%;margin-bottom:0.75rem">New chat</button>
+            <div id="conv-list" class="empty">No conversations yet.</div>
+          </div>
           <div class="card">
             <h2>Chat</h2>
             <div class="chat-log" id="chat-log"></div>
@@ -238,7 +296,7 @@
               <textarea id="prompt" rows="3" placeholder="Ask a peer that has a READY model…"></textarea>
               <button class="primary" id="send">Send</button>
             </div>
-            <p class="note">Uses the Rust mesh (`run_inference_with_reassign`). No templates, no WebRTC, no TypeScript coordinator.</p>
+            <p class="note">Messages are stored on this peer in SQLite. TOKEN_STREAM is collected in Rust; this window shows the completed result. No templates, no WebRTC, no TypeScript coordinator.</p>
           </div>
           <div class="card">
             <h2>Last inference</h2>
@@ -277,14 +335,45 @@
       </section>
 
       <section class="panel" id="panel-settings">
-        <div class="card">
-          <h2>Settings</h2>
-          <p class="note">Dial a bootstrap peer by listen address. Identity and QUIC stay in the Rust core.</p>
-          <div class="row" style="margin-top:0.75rem">
-            <input id="dial-addr" placeholder="203.0.113.10:4433" />
-            <button class="primary" id="dial-btn">Dial</button>
+        <div class="grid-2">
+          <div class="card">
+            <h2>Resource participation</h2>
+            <p class="note">Opt-in. Default is PAUSED. Enforcement is in the Rust worker, not this form. Wallet/credits are not implemented.</p>
+            <label class="field">Sharing
+              <select id="share-enabled">
+                <option value="paused">PAUSED</option>
+                <option value="active">ACTIVE</option>
+              </select>
+            </label>
+            <label class="field">CPU limit (%)
+              <input id="share-cpu" type="number" min="0" max="100" />
+            </label>
+            <label class="field">Memory limit (MB)
+              <input id="share-mem" type="number" min="0" />
+            </label>
+            <label class="field" style="display:flex;flex-direction:row;align-items:center;gap:0.5rem">
+              <input id="share-idle" type="checkbox" />
+              Idle only
+            </label>
+            <label class="field" style="display:flex;flex-direction:row;align-items:center;gap:0.5rem">
+              <input id="share-gpu" type="checkbox" disabled />
+              GPU contribution
+            </label>
+            <p class="note" id="gpu-note">GPU: not detected — cannot enable.</p>
+            <button class="primary" id="share-save" style="margin-top:1rem">Save sharing</button>
+            <p class="mono" id="share-status" style="margin-top:0.75rem;color:var(--muted)"></p>
+            <div id="hw-view" class="note" style="margin-top:1rem"></div>
+            <p class="note" style="margin-top:1rem"><strong>Wallet</strong> <span class="badge warn" id="wallet-status">NOT IMPLEMENTED</span></p>
           </div>
-          <p class="mono" id="dial-status" style="margin-top:0.75rem;color:var(--muted)"></p>
+          <div class="card">
+            <h2>Bootstrap dial</h2>
+            <p class="note">Dial a bootstrap peer by listen address. Identity and QUIC stay in the Rust core.</p>
+            <div class="row" style="margin-top:0.75rem">
+              <input id="dial-addr" placeholder="203.0.113.10:4433" />
+              <button class="primary" id="dial-btn">Dial</button>
+            </div>
+            <p class="mono" id="dial-status" style="margin-top:0.75rem;color:var(--muted)"></p>
+          </div>
         </div>
       </section>
     </main>
@@ -292,6 +381,8 @@
     <script>
       const $ = (id) => document.getElementById(id);
       let invoke = null;
+      let generating = false;
+      let activeId = null;
 
       async function api(cmd, args = {}) {
         if (!invoke) {
@@ -301,21 +392,73 @@
         return invoke(cmd, args);
       }
 
+      function esc(s) {
+        return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        }[c]));
+      }
+
       function badge(mode) {
         const m = (mode || "").toUpperCase();
         let cls = "badge";
-        if (m === "DIRECT" || m === "READY" || m === "TASK_RESULT" || m === "SUCCESS") cls += " ok";
-        else if (m === "RELAY" || m.includes("NOT TESTED") || m === "ABSENT") cls += " warn";
+        if (m === "DIRECT" || m === "READY" || m === "TASK_RESULT" || m === "SUCCESS" || m === "ACTIVE") cls += " ok";
+        else if (m === "RELAY" || m.includes("NOT TESTED") || m === "ABSENT" || m === "PAUSED") cls += " warn";
         else if (m === "FAILED" || m === "TASK_ERROR" || m === "TASK_TIMEOUT") cls += " bad";
         return `<span class="${cls}">${m || "—"}</span>`;
       }
 
-      function addBubble(role, text) {
-        const el = document.createElement("div");
-        el.className = `bubble ${role}`;
-        el.textContent = text;
-        $("chat-log").appendChild(el);
-        $("chat-log").scrollTop = $("chat-log").scrollHeight;
+      function renderMessages(msgs) {
+        const log = $("chat-log");
+        log.innerHTML = "";
+        if (!msgs?.length) {
+          const el = document.createElement("div");
+          el.className = "bubble meta";
+          el.textContent = "No messages in this conversation.";
+          log.appendChild(el);
+          return;
+        }
+        for (const m of msgs) {
+          const el = document.createElement("div");
+          const role = m.role === "assistant" ? "assistant" : m.role === "user" ? "user" : "meta";
+          el.className = `bubble ${role}`;
+          el.textContent = m.content || "";
+          log.appendChild(el);
+        }
+        if (generating) {
+          const el = document.createElement("div");
+          el.className = "bubble meta";
+          el.textContent = "Generating… waiting for completed mesh result (no live TOKEN_STREAM in this window).";
+          log.appendChild(el);
+        }
+        log.scrollTop = log.scrollHeight;
+      }
+
+      function renderHistory(convs) {
+        if (!convs?.length) {
+          $("conv-list").innerHTML = `<p class="empty">No conversations yet.</p>`;
+          return;
+        }
+        $("conv-list").innerHTML = convs.map((c) => {
+          const active = c.conversation_id === activeId ? " active" : "";
+          const when = c.updated_at ? new Date(Number(c.updated_at)).toLocaleString() : "";
+          return `<button class="hist-item${active}" data-id="${c.conversation_id}">
+            <span class="t">${esc(c.title || "Chat")}</span>
+            <span class="d">${when}</span>
+          </button>`;
+        }).join("");
+        $("conv-list").querySelectorAll(".hist-item").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            activeId = btn.dataset.id;
+            try {
+              await api("set_active_conversation", { id: activeId });
+              const msgs = await api("messages", { conversationId: activeId });
+              renderMessages(msgs);
+              renderHistory(convs);
+            } catch (e) {
+              $("chat-log").textContent = String(e);
+            }
+          });
+        });
       }
 
       document.querySelectorAll("nav button").forEach((btn) => {
@@ -328,16 +471,28 @@
         });
       });
 
+      $("new-chat").addEventListener("click", async () => {
+        try {
+          const rec = await api("create_conversation");
+          activeId = rec.conversation_id;
+          renderMessages([]);
+          refresh();
+        } catch (e) {
+          $("chat-log").textContent = String(e);
+        }
+      });
+
       $("send").addEventListener("click", async () => {
         const prompt = $("prompt").value.trim();
-        if (!prompt) return;
+        if (!prompt || generating) return;
+        generating = true;
         $("send").disabled = true;
-        addBubble("user", prompt);
-        addBubble("meta", "TASK_OFFER → selecting READY peer…");
         $("prompt").value = "";
         try {
-          const r = await api("chat", { prompt });
-          addBubble("assistant", r.text || "(empty response)");
+          const existing = activeId ? await api("messages", { conversationId: activeId }) : [];
+          renderMessages(existing);
+          const r = await api("chat", { prompt, conversationId: activeId });
+          if (r.conversation_id) activeId = r.conversation_id;
           const attempts = (r.attempts || [])
             .map((a) => `Attempt ${a.attempt} → ${a.worker} → ${a.result}`)
             .join("\n");
@@ -350,14 +505,19 @@
             </div>
             <pre class="mono" style="margin-top:0.75rem;white-space:pre-wrap;color:var(--muted)">${attempts || "single attempt"}</pre>
           `;
-          addBubble("meta", `TASK_RESULT · ${r.connection_mode} · ${r.executor}`);
         } catch (e) {
           const msg = String(e);
           const status = /timeout/i.test(msg) ? "TASK_TIMEOUT" : "TASK_ERROR";
-          addBubble("meta", `${status} · ${msg}`);
           $("last-meta").innerHTML = `<span class="badge bad">${status}</span> <span class="mono">${msg}</span>`;
         } finally {
+          generating = false;
           $("send").disabled = false;
+          if (activeId) {
+            try {
+              const msgs = await api("messages", { conversationId: activeId });
+              renderMessages(msgs);
+            } catch (_) { /* SQLite reload is best-effort after send */ }
+          }
           refresh();
         }
       });
@@ -374,16 +534,60 @@
         }
       });
 
+      $("share-save").addEventListener("click", async () => {
+        $("share-status").textContent = "saving…";
+        try {
+          const sharing = {
+            enabled: $("share-enabled").value === "active",
+            cpu_limit_percent: Number($("share-cpu").value || 0),
+            memory_limit_mb: Number($("share-mem").value || 0),
+            gpu_enabled: $("share-gpu").checked,
+            gpu_limit_percent: null,
+            idle_only: $("share-idle").checked,
+          };
+          const v = await api("set_resource", { sharing });
+          renderResource(v);
+          $("share-status").textContent = `saved · ${v.state}`;
+        } catch (e) {
+          $("share-status").textContent = String(e);
+        }
+      });
+
+      function renderResource(v, fillForm = true) {
+        if (!v) return;
+        $("share-pill").textContent = `sharing: ${v.state || "PAUSED"}`;
+        $("wallet-status").textContent = v.wallet_status || "NOT IMPLEMENTED";
+        if (!fillForm) return;
+        const s = v.sharing || {};
+        $("share-enabled").value = s.enabled ? "active" : "paused";
+        $("share-cpu").value = s.cpu_limit_percent ?? 50;
+        $("share-mem").value = s.memory_limit_mb ?? 2048;
+        $("share-idle").checked = !!s.idle_only;
+        const hw = v.hardware || {};
+        const gpuDetected = !!(hw.gpu_model);
+        $("share-gpu").disabled = !gpuDetected;
+        $("share-gpu").checked = gpuDetected && !!s.gpu_enabled;
+        $("gpu-note").textContent = gpuDetected
+          ? `GPU: ${hw.gpu_vendor || ""} ${hw.gpu_model}${hw.gpu_vram_mb != null ? ` · ${hw.gpu_vram_mb} MB` : ""}`
+          : "GPU: not detected — cannot enable.";
+        $("hw-view").innerHTML = `
+          <div><strong>Detected hardware</strong></div>
+          <div class="mono">CPU ${hw.cpu_model || "unknown"} · ${hw.cpu_cores ?? "—"} cores · ${Number(hw.cpu_usage_pct || 0).toFixed(0)}%</div>
+          <div class="mono">RAM ${hw.memory_available_mb ?? "—"} / ${hw.memory_total_mb ?? "—"} MB available/total</div>
+          <div class="mono">GPU ${hw.gpu_model || "none"}</div>`;
+      }
+
       function renderPeers(peers) {
         if (!peers?.length) {
           $("peers-table").innerHTML = `<p class="empty">No authenticated peers yet. Dial from Settings or wait for discovery.</p>`;
           return;
         }
         $("peers-table").innerHTML = `<table>
-          <thead><tr><th>Peer</th><th>State</th><th>Mode</th><th>RTT</th><th>Endpoints</th><th>Models</th></tr></thead>
+          <thead><tr><th>Peer</th><th>State</th><th>Sharing</th><th>Mode</th><th>RTT</th><th>Endpoints</th><th>Models</th></tr></thead>
           <tbody>${peers.map((p) => `<tr>
             <td class="mono">${p.peer_id}</td>
             <td>${badge(p.state)}</td>
+            <td>${badge(p.compute_sharing || "—")}</td>
             <td>${badge(p.connection_mode)}</td>
             <td class="mono">${p.rtt_ms == null ? "—" : p.rtt_ms.toFixed(1) + " ms"}</td>
             <td class="mono">${(p.endpoints || []).map((e) => `${e.kind} ${e.addr}`).join("<br>") || p.session_addr}</td>
@@ -451,16 +655,25 @@
           if (s.local_peer_id) $("local-peer").textContent = `peer: ${s.local_peer_id}`;
           if (s.wan_status) $("wan-pill").textContent = s.wan_status;
           if (!s.started) return;
-          const [p, m, t, n] = await Promise.all([
+          const [p, m, t, n, convs, res] = await Promise.all([
             api("peers"),
             api("models"),
             api("tasks"),
             api("network"),
+            api("conversations"),
+            api("resource"),
           ]);
           renderPeers(p);
           renderModels(m);
           renderTasks(t);
           renderNetwork(n);
+          renderResource(res, !document.activeElement || !document.activeElement.closest("#panel-settings"));
+          if (!activeId && s.active_conversation_id) activeId = s.active_conversation_id;
+          renderHistory(convs || []);
+          if (activeId && !generating) {
+            const msgs = await api("messages", { conversationId: activeId });
+            renderMessages(msgs);
+          }
         } catch (e) {
           $("local-peer").textContent = String(e);
         }

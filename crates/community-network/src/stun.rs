@@ -51,10 +51,10 @@ fn resolve_stun(server: &str) -> Result<SocketAddr> {
         .or_else(|_| {
             use std::net::ToSocketAddrs;
             with_port
-            .to_socket_addrs()
-            .ok()
-            .and_then(|mut it| it.next())
-            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "stun resolve"))
+                .to_socket_addrs()
+                .ok()
+                .and_then(|mut it| it.next())
+                .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "stun resolve"))
         })
         .map_err(|e| CommunityError::Network(format!("STUN resolve {server}: {e}")))
 }
@@ -74,7 +74,9 @@ pub fn parse_mapped_address(pkt: &[u8], tid: &[u8; 12]) -> Result<SocketAddr> {
     }
     let typ = u16::from_be_bytes([pkt[0], pkt[1]]);
     if typ != BINDING_SUCCESS {
-        return Err(CommunityError::Network(format!("STUN unexpected type {typ:#x}")));
+        return Err(CommunityError::Network(format!(
+            "STUN unexpected type {typ:#x}"
+        )));
     }
     let magic = u32::from_be_bytes([pkt[4], pkt[5], pkt[6], pkt[7]]);
     if magic != MAGIC {
@@ -113,7 +115,9 @@ pub fn parse_mapped_address(pkt: &[u8], tid: &[u8; 12]) -> Result<SocketAddr> {
         }
         i = (attr_end + 3) & !3;
     }
-    Err(CommunityError::Network("STUN missing mapped address".into()))
+    Err(CommunityError::Network(
+        "STUN missing mapped address".into(),
+    ))
 }
 
 fn decode_address(val: &[u8], xor: bool, tid: &[u8; 12]) -> Result<SocketAddr> {

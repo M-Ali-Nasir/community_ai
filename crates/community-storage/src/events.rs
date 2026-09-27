@@ -20,9 +20,9 @@ pub fn canonical_signed_bytes(
 }
 
 pub fn pubkey_hex_from_peer_id(peer_id: &str) -> Result<String> {
-    let hex = peer_id
-        .strip_prefix("node-")
-        .ok_or_else(|| StorageError::InvalidEvent(format!("peer id must be node-{{pk}}: {peer_id}")))?;
+    let hex = peer_id.strip_prefix("node-").ok_or_else(|| {
+        StorageError::InvalidEvent(format!("peer id must be node-{{pk}}: {peer_id}"))
+    })?;
     if hex.len() != 64 {
         return Err(StorageError::InvalidEvent(
             "peer id public key must be 64 hex chars".into(),
@@ -98,14 +98,17 @@ pub fn ingest_remote_event(conn: &Connection, event: &StorageEvent) -> Result<()
         )));
     }
 
-    let expected_seq = last_sequence(conn, &event.author_peer_id)?.map(|s| s + 1).unwrap_or(1);
+    let expected_seq = last_sequence(conn, &event.author_peer_id)?
+        .map(|s| s + 1)
+        .unwrap_or(1);
     if event.sequence != expected_seq {
         return Err(StorageError::SequenceConflict(format!(
             "expected sequence {expected_seq}, got {}",
             event.sequence
         )));
     }
-    let expected_prev = last_event_id(conn, &event.author_peer_id)?.unwrap_or_else(|| GENESIS_HASH.into());
+    let expected_prev =
+        last_event_id(conn, &event.author_peer_id)?.unwrap_or_else(|| GENESIS_HASH.into());
     if event.previous_event_hash != expected_prev {
         return Err(StorageError::InvalidEvent(format!(
             "previous hash mismatch: expected {expected_prev}"
@@ -132,7 +135,9 @@ pub fn validate_event(event: &StorageEvent) -> Result<()> {
     );
     let expected_id = compute_blake3_hash(&canonical);
     if expected_id != event.event_id {
-        return Err(StorageError::InvalidEvent("event_id does not match signed material".into()));
+        return Err(StorageError::InvalidEvent(
+            "event_id does not match signed material".into(),
+        ));
     }
     let pk = pubkey_hex_from_peer_id(&event.author_peer_id)?;
     let env = SignedEnvelope {
@@ -222,7 +227,11 @@ fn load_event(conn: &Connection, event_id: &str) -> Result<Option<StorageEvent>>
     .map_err(Into::into)
 }
 
-fn load_by_author_seq(conn: &Connection, author: &str, sequence: i64) -> Result<Option<StorageEvent>> {
+fn load_by_author_seq(
+    conn: &Connection,
+    author: &str,
+    sequence: i64,
+) -> Result<Option<StorageEvent>> {
     conn.query_row(
         "SELECT event_id, event_type, author_peer_id, sequence, timestamp, previous_event_hash, payload_hash, payload, signature, visibility
          FROM events WHERE author_peer_id = ?1 AND sequence = ?2",

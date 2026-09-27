@@ -1,7 +1,7 @@
 //! Core types and primitives for Community AI.
 
-use std::fmt;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use uuid::Uuid;
 
 /// Unique identifier for a node in the network.
@@ -101,13 +101,20 @@ impl ShardId {
     }
 
     pub fn canonical_name(&self) -> String {
-        format!("{}_shard_{:03}_of_{:03}", self.model_id, self.shard_index, self.total_shards)
+        format!(
+            "{}_shard_{:03}_of_{:03}",
+            self.model_id, self.shard_index, self.total_shards
+        )
     }
 }
 
 impl fmt::Display for ShardId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}[{}/{}]", self.model_id, self.shard_index, self.total_shards)
+        write!(
+            f,
+            "{}[{}/{}]",
+            self.model_id, self.shard_index, self.total_shards
+        )
     }
 }
 

@@ -1,6 +1,6 @@
 # TASK BOARD
 
-**Updated:** 2026-09-26  
+**Updated:** 2026-09-27  
 **Owner:** Manager Agent  
 **Rule:** Do not mark DONE without tests on real behavior. **Network architecture is FROZEN** unless a physical WAN test exposes a concrete defect. Track A (B-010) does not block Track B (native product). UI must never fabricate state.
 
@@ -118,7 +118,7 @@ T-021 is complete at process/networking level. Native UI work (T-060 / T-070 / T
 | T-063 | iOS: XCFramework + minimal SwiftUI shell | P1 | T-021 | Native | BACKLOG | Same as Android — **NOT PHYSICALLY TESTED** | Device/sim | `platform/ios` |
 | T-064 | Fix systemd/launchd CLI flags | P0 | T-021 | Native | BACKLOG | Units start daemon successfully | Install test | linux/macos |
 | T-065 | Retire Chrome `launch-app.sh` as primary | P1 | T-060 | Manager | BACKLOG | README points to native app | Doc | dist/, README |
-| T-070 | UI binds only to real Rust peer/resource/model/task state | P0 | T-021 | Native/UI | **IN_PROGRESS** | Matrix in `docs/testing/NATIVE_UI_STATE.md`; no fake peers/CPU/READY | `peers_view_tracks_*`, `chat_without_ready_worker_*` | `community-app`, desktop |
+| T-070 | UI binds only to real Rust peer/resource/model/task state | P0 | T-021 | Native/UI | **IN_PROGRESS** | Matrix in `docs/testing/NATIVE_UI_STATE.md`; no fake peers/CPU/READY/wallet | `peers_view_tracks_*`, `chat_without_ready_worker_*`, chat isolation, resource pause/accept | `community-app`, desktop |
 
 T-070 is **not** UI cosmetics. It is exclusive binding to Rust mesh/runtime state.
 

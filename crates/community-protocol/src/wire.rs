@@ -88,37 +88,83 @@ pub struct PeerHint {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum MeshPayload {
-    Hello { body: HelloBody },
-    AuthChallenge { body: AuthChallengeBody },
-    AuthResponse { body: AuthResponseBody },
-    Capabilities { profile: CapabilityProfile },
-    ResourceReport { body: ResourceReportBody },
-    PeerGossip { hints: Vec<PeerHint> },
-    Ping { nonce: u64 },
-    Pong { nonce: u64 },
+    Hello {
+        body: HelloBody,
+    },
+    AuthChallenge {
+        body: AuthChallengeBody,
+    },
+    AuthResponse {
+        body: AuthResponseBody,
+    },
+    Capabilities {
+        profile: CapabilityProfile,
+    },
+    ResourceReport {
+        body: ResourceReportBody,
+    },
+    PeerGossip {
+        hints: Vec<PeerHint>,
+    },
+    Ping {
+        nonce: u64,
+    },
+    Pong {
+        nonce: u64,
+    },
     /// Direct peer work: originator asks a peer to process bytes; reply is on the same session.
-    EchoRequest { request_id: String, payload: String },
-    EchoReply { request_id: String, payload: String },
-    ModelReport { models: Vec<ModelAdvertisement> },
-    TaskOffer { body: TaskOfferBody },
-    TaskAccept { task_id: String },
-    TaskReject { task_id: String, reason: String },
-    TaskProgress { task_id: String, detail: String, pct: f32 },
-    TokenStream { task_id: String, text: String },
+    EchoRequest {
+        request_id: String,
+        payload: String,
+    },
+    EchoReply {
+        request_id: String,
+        payload: String,
+    },
+    ModelReport {
+        models: Vec<ModelAdvertisement>,
+    },
+    TaskOffer {
+        body: TaskOfferBody,
+    },
+    TaskAccept {
+        task_id: String,
+    },
+    TaskReject {
+        task_id: String,
+        reason: String,
+    },
+    TaskProgress {
+        task_id: String,
+        detail: String,
+        pct: f32,
+    },
+    TokenStream {
+        task_id: String,
+        text: String,
+    },
     TaskResult {
         task_id: String,
         text: String,
         proof: InferenceProof,
     },
-    TaskCancel { task_id: String },
+    TaskCancel {
+        task_id: String,
+    },
     TaskError {
         task_id: String,
         code: String,
         message: String,
     },
-    TaskTimeout { task_id: String },
-    PeerLeave { reason: String },
-    Error { body: MeshErrorBody },
+    TaskTimeout {
+        task_id: String,
+    },
+    PeerLeave {
+        reason: String,
+    },
+    Error {
+        body: MeshErrorBody,
+    },
 }
 
 /// Signed length-prefixed JSON envelope.
@@ -165,7 +211,9 @@ impl MeshFrame {
 
     pub fn verify(&self) -> Result<()> {
         if self.sender_pubkey_hex.len() != 64 {
-            return Err(CommunityError::Security("sender pubkey must be 64 hex chars".into()));
+            return Err(CommunityError::Security(
+                "sender pubkey must be 64 hex chars".into(),
+            ));
         }
         let expected = NodeIdentity::node_id_from_pubkey_hex(&self.sender_pubkey_hex)?;
         if expected != self.sender_id {
@@ -233,12 +281,7 @@ mod tests {
     #[test]
     fn frame_sign_verify_roundtrip() {
         let id = NodeIdentity::generate();
-        let frame = MeshFrame::new(
-            &id,
-            MeshPayload::Ping { nonce: 7 },
-            None,
-        )
-        .unwrap();
+        let frame = MeshFrame::new(&id, MeshPayload::Ping { nonce: 7 }, None).unwrap();
         frame.verify().unwrap();
         assert_eq!(frame.sender_id, id.node_id());
     }

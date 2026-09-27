@@ -1,6 +1,6 @@
 # PROJECT STATUS
 
-**Updated:** 2026-09-26  
+**Updated:** 2026-09-27  
 **Owner:** Manager Agent  
 **Phase:** Stage 1B — native application verification; network **frozen**  
 **WAN claim:** `PHYSICAL WAN VERIFIED — NOT TESTED` (B-010 open)
@@ -80,9 +80,10 @@ Eventually each mobile OS needs BUILD / RUNTIME / P2P / INFERENCE verified. Shar
 1. **Legacy TypeScript hub / worker-node / `start-wan-mesh.sh`** — LEGACY / DEPRECATED. Not the production mesh.
 2. **Rust core:** Ed25519, `quinn` QUIC, optional mDNS/STUN/relay — **frozen** pending WAN evidence.
 3. **Native API:** `community-app` views for peers/network/models/tasks/chat. No CPU/memory graphs (no honest UI source yet).
-4. **Chat:** Tauri `chat` → mesh → llama.cpp. Live window GGUF **NOT VERIFIED**. Live UI token stream **missing** (T-043). Failure → `TASK_ERROR` / `TASK_TIMEOUT`. Conversations persist in peer-local SQLite (ADR-0013); **not** a central history.
+4. **Chat:** Tauri `chat` → mesh → llama.cpp. History list/select/create is bound to SQLite via CommunityApp APIs. Live window GGUF **NOT VERIFIED**. Live UI token stream **missing** (T-043). Failure → `TASK_ERROR` / `TASK_TIMEOUT`. Conversations persist in peer-local SQLite (ADR-0013); **not** a central history.
 5. **WAN:** `PHYSICAL WAN VERIFIED — NOT TESTED`.
 6. **Storage:** local SQLite + BLAKE3 objects + signed events. P2P storage replication **not implemented**. Wallet/training **not implemented**.
+7. **Resource participation:** desktop default **PAUSED** (opt-in). Limits persist in `peer_settings`. Worker rejects TaskOffer when paused or over limits. Advertisement sets `compute_sharing_enabled`. Wallet/credits remain **NOT IMPLEMENTED**.
 
 ---
 

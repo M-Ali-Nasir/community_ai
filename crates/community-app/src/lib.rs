@@ -7,17 +7,20 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use community_governor::{GovernorConfig, ResourceGovernor};
+use community_governor::{GovernorConfig, HardwareSnapshot, ResourceGovernor};
 use community_network::{InferenceOutcome, MeshConfig, MeshSwarm};
 use community_protocol::*;
 use community_runtime::InferenceService;
 use community_security::NodeIdentity;
 use community_storage::{
     default_storage_root, ConversationRecord, GenerationRecord, Lifecycle, MessageRecord,
-    MessageRole, Storage, TaskRecord, TokenAccumulator,
+    MessageRole, Storage, TaskRecord, TokenAccumulator, Visibility,
+    EVENT_RESOURCE_CAPABILITY_UPDATED, EVENT_RESOURCE_SHARING_ENABLED,
+    EVENT_RESOURCE_SHARING_PAUSED,
 };
 use tokio::sync::Mutex;
 
+pub use community_protocol::ResourceSharingConfig;
 pub use view::*;
 
 pub struct AppOptions {
@@ -70,9 +73,27 @@ pub struct CommunityApp {
 
 impl CommunityApp {
     pub async fn start(opts: AppOptions) -> anyhow::Result<Self> {
+        Self::start_inner(opts, None).await
+    }
+
+    pub async fn start_with_inference(
+        opts: AppOptions,
+        inference: Option<Arc<dyn InferenceService>>,
+    ) -> anyhow::Result<Self> {
+        Self::start_inner(opts, inference).await
+    }
+
+    async fn start_inner(
+        opts: AppOptions,
+        extra_inference: Option<Arc<dyn InferenceService>>,
+    ) -> anyhow::Result<Self> {
         let identity = NodeIdentity::load_or_generate(&opts.identity_path)?;
+        let storage = Storage::open(&opts.storage_dir, identity.clone())?;
+        let hw = community_governor::HardwareSnapshot::detect();
+        let sharing = sanitize_sharing(load_sharing(&storage), &hw);
         let mut governor = ResourceGovernor::new(GovernorConfig::default());
         let metrics = governor.tick(false, false);
+        let cpu_frac = (sharing.cpu_limit_percent as f32 / 100.0).clamp(0.0, 1.0);
         let profile = CapabilityProfile {
             node_id: identity.node_id(),
             label: opts.name.clone(),
@@ -80,16 +101,14 @@ impl CommunityApp {
             os: std::env::consts::OS.to_string(),
             arch: std::env::consts::ARCH.to_string(),
             cpu: CpuProfile {
-                model: "Host CPU".into(),
-                cores: std::thread::available_parallelism()
-                    .map(|n| n.get())
-                    .unwrap_or(4),
-                available_fraction: metrics.capacity,
+                model: hw.cpu_model.clone(),
+                cores: hw.cpu_cores,
+                available_fraction: metrics.capacity.min(cpu_frac),
             },
             gpu: None,
             memory: MemoryProfile {
-                total_mb: metrics.available_memory_mb.max(1024),
-                available_mb: metrics.available_memory_mb,
+                total_mb: hw.memory_total_mb.max(1) as usize,
+                available_mb: hw.memory_available_mb.min(sharing.memory_limit_mb.max(1)) as usize,
             },
             network: NetworkProfile {
                 latency_ms: 0.0,
@@ -105,6 +124,8 @@ impl CommunityApp {
             rpc: None,
             cached_shards: vec![],
             models: vec![],
+            compute_sharing_enabled: sharing.enabled,
+            supported_shard_ranges: vec![],
         };
         let mut cfg = if opts.test_mesh {
             MeshConfig::test(opts.bind)
@@ -118,45 +139,51 @@ impl CommunityApp {
         cfg.relay = opts.relay;
 
         let model_path = opts.model.clone();
-        let inference: Option<Arc<dyn InferenceService>> = if let Some(ref model_path) = model_path {
-            let Some((bin, dir)) = community_runtime::find_llama_server() else {
-                anyhow::bail!("model set but llama-server not found");
-            };
-            let spec = community_runtime::LlamaServerSpec {
-                binary: bin,
-                lib_dir: dir,
-                quantization: community_runtime::quant_from_name(model_path),
-                model_path: model_path.clone(),
-                model_id: opts.model_id.clone(),
-                context_size: 2048,
-                gpu_layers: 0,
-            };
-            match community_runtime::LlamaServerEngine::start(spec).await {
-                Ok(e) => Some(e),
-                Err(e) => {
-                    tracing::error!("model load failed: {e}");
-                    None
-                }
+        let mut inference = extra_inference;
+        if inference.is_none() {
+            if let Some(ref model_path) = model_path {
+                let Some((bin, dir)) = community_runtime::find_llama_server() else {
+                    anyhow::bail!("model set but llama-server not found");
+                };
+                let spec = community_runtime::LlamaServerSpec {
+                    binary: bin,
+                    lib_dir: dir,
+                    quantization: community_runtime::quant_from_name(model_path),
+                    model_path: model_path.clone(),
+                    model_id: opts.model_id.clone(),
+                    context_size: 2048,
+                    gpu_layers: 0,
+                };
+                inference = match community_runtime::LlamaServerEngine::start(spec).await {
+                    Ok(e) => Some(e),
+                    Err(e) => {
+                        tracing::error!("model load failed: {e}");
+                        None
+                    }
+                };
             }
-        } else {
-            None
-        };
+        }
 
         let swarm = MeshSwarm::bind_with(identity.clone(), profile, cfg, inference).await?;
+        swarm.set_resource_policy(sharing.clone()).await;
+        if storage.get_setting(SETTING_RESOURCE_SHARING)?.is_none() {
+            persist_sharing(&storage, &sharing)?;
+        }
         for p in opts.peers {
             if let Err(e) = swarm.dial(p).await {
                 tracing::warn!("bootstrap dial {p} failed: {e}");
             }
         }
-        let storage = Storage::open(&opts.storage_dir, identity.clone())?;
-        Ok(Self {
+        let app = Self {
             identity,
             swarm,
             model_id: opts.model_id,
             model_path,
             storage,
             active_conversation: Mutex::new(None),
-        })
+        };
+        app.restore_active_conversation().await;
+        Ok(app)
     }
 
     pub fn peer_id(&self) -> community_core::NodeId {
@@ -167,12 +194,47 @@ impl CommunityApp {
         &self.model_id
     }
 
-    pub fn session_view(&self) -> SessionView {
+    pub async fn session_view(&self) -> SessionView {
         SessionView {
             started: true,
             local_peer_id: Some(self.peer_id().to_string()),
             model_id: self.model_id.clone(),
             wan_status: WAN_STATUS_NOT_TESTED.into(),
+            active_conversation_id: self.active_conversation.lock().await.clone(),
+        }
+    }
+
+    pub async fn resource_view(&self) -> ResourceView {
+        let sharing = self.swarm.resource_policy().await;
+        ResourceView {
+            state: sharing.state_label().into(),
+            sharing,
+            hardware: HardwareSnapshot::detect(),
+            wallet_status: WALLET_NOT_IMPLEMENTED.into(),
+        }
+    }
+
+    pub async fn set_resource_sharing(
+        &self,
+        cfg: ResourceSharingConfig,
+    ) -> anyhow::Result<ResourceView> {
+        let hw = HardwareSnapshot::detect();
+        let next = sanitize_sharing(cfg, &hw);
+        let prev = load_sharing(&self.storage);
+        persist_sharing(&self.storage, &next)?;
+        emit_sharing_events(&self.storage, Some(&prev), &next)?;
+        self.swarm.set_resource_policy(next).await;
+        Ok(self.resource_view().await)
+    }
+
+    async fn restore_active_conversation(&self) {
+        if self.active_conversation.lock().await.is_some() {
+            return;
+        }
+        if let Ok(list) = self.storage.list_conversations() {
+            if let Some(first) = list.into_iter().find(|c| !c.archived) {
+                *self.active_conversation.lock().await = Some(first.conversation_id);
+            }
         }
     }
 
@@ -241,6 +303,15 @@ impl CommunityApp {
 
     pub fn create_conversation(&self, title: &str) -> anyhow::Result<ConversationRecord> {
         Ok(self.storage.create_conversation(title)?)
+    }
+
+    pub async fn create_and_select_conversation(
+        &self,
+        title: &str,
+    ) -> anyhow::Result<ConversationRecord> {
+        let rec = self.storage.create_conversation(title)?;
+        *self.active_conversation.lock().await = Some(rec.conversation_id.clone());
+        Ok(rec)
     }
 
     pub fn get_conversation(&self, id: &str) -> anyhow::Result<Option<ConversationRecord>> {
@@ -314,6 +385,17 @@ impl CommunityApp {
     /// QUIC TOKEN_STREAM is collected in the core; the UI currently receives the completed result.
     /// User/assistant text is persisted locally; nothing is auto-replicated.
     pub async fn chat(&self, prompt: &str) -> anyhow::Result<ChatResultView> {
+        self.chat_in(None, prompt).await
+    }
+
+    pub async fn chat_in(
+        &self,
+        conversation_id: Option<&str>,
+        prompt: &str,
+    ) -> anyhow::Result<ChatResultView> {
+        if let Some(id) = conversation_id.map(str::trim).filter(|s| !s.is_empty()) {
+            self.set_active_conversation(id).await?;
+        }
         let conv_id = self.ensure_conversation().await?;
         let task_id = format!("ui-{}", chrono_like_id());
         let preview: String = prompt.chars().take(80).collect();
@@ -329,6 +411,7 @@ impl CommunityApp {
             None,
             None,
         )?;
+        maybe_title_from_prompt(&self.storage, &conv_id, prompt)?;
 
         self.persist_task(
             &task_id,
@@ -406,6 +489,7 @@ impl CommunityApp {
                         view.text = acc.finalize_text();
                     }
                     view.attempts = attempts.clone();
+                    view.conversation_id = conv_id.clone();
                     let completion_tokens = if view.tokens.is_empty() {
                         None
                     } else {
@@ -520,9 +604,7 @@ impl CommunityApp {
             error: error.map(|s| s.to_string()),
             conversation_id: Some(conversation_id.into()),
             prompt_preview: Some(preview.into()),
-            attempts_json: attempts
-                .map(|a| serde_json::to_string(a))
-                .transpose()?,
+            attempts_json: attempts.map(|a| serde_json::to_string(a)).transpose()?,
             executor: executor.map(|s| s.to_string()),
             connection_mode: connection_mode.map(|s| s.to_string()),
         };
@@ -561,6 +643,84 @@ fn chrono_like_id() -> String {
     format!("{}", chrono_unix_ms())
 }
 
+const SETTING_RESOURCE_SHARING: &str = "resource_sharing";
+const WALLET_NOT_IMPLEMENTED: &str = "NOT IMPLEMENTED";
+
+fn load_sharing(storage: &Storage) -> ResourceSharingConfig {
+    match storage.get_setting(SETTING_RESOURCE_SHARING) {
+        Ok(Some(raw)) => serde_json::from_str(&raw).unwrap_or_default(),
+        _ => ResourceSharingConfig::default(),
+    }
+    .clamp()
+}
+
+fn persist_sharing(storage: &Storage, cfg: &ResourceSharingConfig) -> anyhow::Result<()> {
+    storage.put_setting(SETTING_RESOURCE_SHARING, &serde_json::to_string(cfg)?)?;
+    Ok(())
+}
+
+fn sanitize_sharing(
+    mut cfg: ResourceSharingConfig,
+    hw: &HardwareSnapshot,
+) -> ResourceSharingConfig {
+    cfg = cfg.clamp();
+    if cfg.gpu_enabled && !hw.gpu_detected() {
+        cfg.gpu_enabled = false;
+        cfg.gpu_limit_percent = None;
+    }
+    cfg
+}
+
+fn emit_sharing_events(
+    storage: &Storage,
+    prev: Option<&ResourceSharingConfig>,
+    next: &ResourceSharingConfig,
+) -> anyhow::Result<()> {
+    let payload = serde_json::json!({
+        "enabled": next.enabled,
+        "state": next.state_label(),
+        "cpu_limit_percent": next.cpu_limit_percent,
+        "memory_limit_mb": next.memory_limit_mb,
+        "gpu_enabled": next.gpu_enabled,
+        "gpu_limit_percent": next.gpu_limit_percent,
+        "idle_only": next.idle_only,
+    });
+    let toggled = prev.map(|p| p.enabled) != Some(next.enabled);
+    if toggled {
+        let kind = if next.enabled {
+            EVENT_RESOURCE_SHARING_ENABLED
+        } else {
+            EVENT_RESOURCE_SHARING_PAUSED
+        };
+        storage.append_event(kind, payload.clone(), Visibility::Private)?;
+    }
+    storage.append_event(
+        EVENT_RESOURCE_CAPABILITY_UPDATED,
+        payload,
+        Visibility::Private,
+    )?;
+    Ok(())
+}
+
+fn maybe_title_from_prompt(
+    storage: &Storage,
+    conversation_id: &str,
+    prompt: &str,
+) -> anyhow::Result<()> {
+    let Some(conv) = storage.get_conversation(conversation_id)? else {
+        return Ok(());
+    };
+    if conv.title != "Chat" && !conv.title.is_empty() {
+        return Ok(());
+    }
+    let title: String = prompt.chars().take(48).collect();
+    let title = title.trim();
+    if !title.is_empty() {
+        storage.set_conversation_title(conversation_id, title)?;
+    }
+    Ok(())
+}
+
 fn task_view_from_record(rec: TaskRecord) -> TaskRecordView {
     let attempts = rec
         .attempts_json
@@ -591,10 +751,8 @@ mod tests {
         opts.enable_mdns = false;
         opts.enable_stun = false;
         opts.test_mesh = true;
-        opts.identity_path = std::env::temp_dir().join(format!(
-            "community-app-{name}-{}.key",
-            std::process::id()
-        ));
+        opts.identity_path =
+            std::env::temp_dir().join(format!("community-app-{name}-{}.key", std::process::id()));
         opts.storage_dir = std::env::temp_dir().join(format!(
             "community-store-{name}-{}-{}",
             std::process::id(),
@@ -609,9 +767,12 @@ mod tests {
             .await
             .expect("native app start");
         assert!(app.peer_id().as_str().starts_with("node-"));
-        assert!(app.swarm.advertised_endpoints().await.iter().any(|e| {
-            matches!(e.kind, EndpointKind::Listen)
-        }));
+        assert!(app
+            .swarm
+            .advertised_endpoints()
+            .await
+            .iter()
+            .any(|e| { matches!(e.kind, EndpointKind::Listen) }));
         let net = app.network_view().await;
         assert_eq!(net.wan_status, WAN_STATUS_NOT_TESTED);
         assert!(net.local_peer_id.starts_with("node-"));
@@ -641,7 +802,10 @@ mod tests {
         let mut seen = false;
         for _ in 0..80 {
             let peers = a.peers_view().await;
-            if peers.iter().any(|p| p.peer_id == b.peer_id().to_string() && p.state == "READY") {
+            if peers
+                .iter()
+                .any(|p| p.peer_id == b.peer_id().to_string() && p.state == "READY")
+            {
                 seen = true;
                 break;
             }
@@ -652,7 +816,10 @@ mod tests {
         let net = a.network_view().await;
         assert!(net.ready_peers >= 1);
         assert_eq!(net.wan_status, WAN_STATUS_NOT_TESTED);
-        assert!(net.connections.iter().all(|c| c.evidence_class == "PROCESS_VERIFIED"));
+        assert!(net
+            .connections
+            .iter()
+            .all(|c| c.evidence_class == "PROCESS_VERIFIED"));
 
         b.swarm.shutdown();
         drop(b);
@@ -661,14 +828,19 @@ mod tests {
         for _ in 0..80 {
             let peers = a.peers_view().await;
             if peers.is_empty()
-                || peers.iter().any(|p| p.state == "DISCONNECTED" || p.state == "CONNECTING")
+                || peers
+                    .iter()
+                    .any(|p| p.state == "DISCONNECTED" || p.state == "CONNECTING")
             {
                 disconnected = true;
                 break;
             }
             tokio::time::sleep(Duration::from_millis(50)).await;
         }
-        assert!(disconnected, "peer disappearance not reflected in peers_view");
+        assert!(
+            disconnected,
+            "peer disappearance not reflected in peers_view"
+        );
         a.swarm.shutdown();
     }
 
@@ -722,6 +894,188 @@ mod tests {
         app2.swarm.shutdown();
     }
 
+    #[tokio::test]
+    async fn conversations_are_isolated_between_peers() {
+        let a = CommunityApp::start(test_opts("iso-a")).await.expect("a");
+        let b = CommunityApp::start(test_opts("iso-b")).await.expect("b");
+        let ca = a.create_conversation("only-a").expect("ca");
+        a.append_message(
+            &ca.conversation_id,
+            MessageRole::User,
+            "secret-a",
+            Lifecycle::Completed,
+        )
+        .expect("msg");
+        let cb = b.create_conversation("only-b").expect("cb");
+        b.append_message(
+            &cb.conversation_id,
+            MessageRole::User,
+            "secret-b",
+            Lifecycle::Completed,
+        )
+        .expect("msg");
+        assert!(b.get_conversation(&ca.conversation_id).unwrap().is_none());
+        assert!(a.get_conversation(&cb.conversation_id).unwrap().is_none());
+        assert!(a
+            .get_messages(&ca.conversation_id)
+            .unwrap()
+            .iter()
+            .any(|m| m.content == "secret-a"));
+        assert!(!b
+            .get_messages(&cb.conversation_id)
+            .unwrap()
+            .iter()
+            .any(|m| m.content == "secret-a"));
+        a.swarm.shutdown();
+        b.swarm.shutdown();
+    }
+
+    #[tokio::test]
+    async fn resource_sharing_defaults_paused_and_survives_restart() {
+        let opts = test_opts("share-persist");
+        let storage_dir = opts.storage_dir.clone();
+        let identity_path = opts.identity_path.clone();
+        {
+            let app = CommunityApp::start(opts).await.expect("start");
+            let v = app.resource_view().await;
+            assert_eq!(v.state, "PAUSED");
+            assert!(!v.sharing.enabled);
+            assert_eq!(v.wallet_status, "NOT IMPLEMENTED");
+            assert!(v.hardware.gpu_model.is_none());
+            let mut cfg = v.sharing;
+            cfg.enabled = true;
+            cfg.idle_only = false;
+            cfg.cpu_limit_percent = 25;
+            cfg.memory_limit_mb = 1024;
+            cfg.gpu_enabled = true;
+            let after = app.set_resource_sharing(cfg).await.expect("set");
+            assert_eq!(after.state, "ACTIVE");
+            assert!(
+                !after.sharing.gpu_enabled,
+                "GPU must stay off if undetected"
+            );
+            let events = app.storage.list_events().unwrap();
+            assert!(events
+                .iter()
+                .any(|e| e.event_type == EVENT_RESOURCE_SHARING_ENABLED));
+            assert!(events
+                .iter()
+                .any(|e| e.event_type == EVENT_RESOURCE_CAPABILITY_UPDATED));
+            app.swarm.shutdown();
+        }
+        let mut opts2 = test_opts("share-persist-2");
+        opts2.storage_dir = storage_dir;
+        opts2.identity_path = identity_path;
+        let app2 = CommunityApp::start(opts2).await.expect("restart");
+        let v = app2.resource_view().await;
+        assert_eq!(v.state, "ACTIVE");
+        assert_eq!(v.sharing.cpu_limit_percent, 25);
+        assert_eq!(v.sharing.memory_limit_mb, 1024);
+        app2.swarm.shutdown();
+    }
+
+    struct TestEngine;
+
+    #[async_trait::async_trait]
+    impl InferenceService for TestEngine {
+        fn advertised_models(&self) -> Vec<ModelAdvertisement> {
+            vec![ModelAdvertisement {
+                model_id: "fake".into(),
+                version: "0".into(),
+                quantization: "none".into(),
+                size_bytes: 1,
+                runtime: "simulated".into(),
+                hash_hex: "ab".repeat(16),
+                state: ModelReadyState::Ready,
+                context_size: 8,
+                available: true,
+                max_concurrent_tasks: 1,
+            }]
+        }
+
+        async fn infer(
+            &self,
+            _offer: TaskOfferBody,
+            token_tx: tokio::sync::mpsc::UnboundedSender<String>,
+            _cancel: community_runtime::InferCancel,
+        ) -> community_core::Result<InferenceProof> {
+            let _ = token_tx.send("nope".into());
+            Ok(InferenceProof {
+                engine: "simulated".into(),
+                llama_build: String::new(),
+                model_id: "fake".into(),
+                model_hash_hex: "ab".repeat(16),
+                server_pid: 0,
+                token_count: 1,
+            })
+        }
+    }
+
+    async fn wait_peer_ready(app: &CommunityApp, peer: &str, timeout: Duration) -> bool {
+        let start = std::time::Instant::now();
+        while start.elapsed() < timeout {
+            if app
+                .peers_view()
+                .await
+                .iter()
+                .any(|p| p.peer_id == peer && p.state == "READY")
+            {
+                return true;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        false
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn paused_worker_is_not_selected_active_accepts_then_fake_engine_fails() {
+        let mut wopts = test_opts("share-worker");
+        wopts.model_id = "fake".into();
+        let worker = CommunityApp::start_with_inference(wopts, Some(Arc::new(TestEngine)))
+            .await
+            .expect("worker");
+        let mut oopts = test_opts("share-orig");
+        oopts.model_id = "fake".into();
+        let orig = CommunityApp::start(oopts).await.expect("orig");
+        orig.dial_peer(&worker.swarm.local_addr().to_string())
+            .await
+            .expect("dial");
+        assert!(
+            wait_peer_ready(&orig, &worker.peer_id().to_string(), Duration::from_secs(8)).await
+        );
+
+        let paused_err = orig.chat("hello paused").await.expect_err("paused");
+        assert!(
+            paused_err.to_string().contains("no READY peer"),
+            "PAUSED must not be selected: {paused_err}"
+        );
+
+        let mut active = ResourceSharingConfig::default();
+        active.enabled = true;
+        active.idle_only = false;
+        worker.set_resource_sharing(active).await.expect("enable");
+
+        let mut advertised = false;
+        for _ in 0..80 {
+            if orig.swarm.select_worker_for_model("fake").await.is_some() {
+                advertised = true;
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        assert!(advertised, "ACTIVE worker should advertise READY model");
+
+        let err = orig.chat("hello active").await.expect_err("fake engine");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("rejected engine") || msg.contains("template"),
+            "ACTIVE worker accepted; originator must still reject fake engine: {msg}"
+        );
+        assert!(!msg.contains("resource sharing paused"));
+        orig.swarm.shutdown();
+        worker.swarm.shutdown();
+    }
+
     #[test]
     fn native_views_do_not_serialize_cpu_graphs() {
         let json = serde_json::to_string(&PeerView {
@@ -734,6 +1088,7 @@ mod tests {
             endpoints: vec![],
             label: None,
             os: None,
+            compute_sharing: None,
             models: vec![],
         })
         .unwrap();
