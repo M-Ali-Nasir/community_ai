@@ -18,7 +18,7 @@ Equal peers. Direct QUIC. Local durable storage. No central coordination server.
 
 > **Evidence classes:** **VERIFIED** means this release produced evidence for that exact claim. **NOT TESTED** means no evidence. **NOT IMPLEMENTED** means the feature is not in v1.0.0. Do not treat BUILD success as INSTALL or RUNTIME success. Authoritative packaging notes: [docs/release-builds.md](docs/release-builds.md) · status: [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 
-The **v1.0.0 GitHub Release has not been published yet**. Download URLs below are the intended asset locations. They become active after tag `v1.0.0` is published. Binaries are **not** stored in git (`release/` is gitignored).
+Binaries are **not** stored in git (`release/` is gitignored). Installers are GitHub Release assets on tag `v1.0.0`.
 
 ---
 
@@ -42,15 +42,17 @@ The **v1.0.0 GitHub Release has not been published yet**. Download URLs below ar
 
 ## Download Community AI v1.0.0
 
-Repository: [M-Ali-Nasir/community_ai](https://github.com/M-Ali-Nasir/community_ai)
+### GitHub Release
 
-Intended release assets (tag `v1.0.0`):
+[Community AI v1.0.0 Release](https://github.com/M-Ali-Nasir/community_ai/releases/tag/v1.0.0)
 
-| Platform | Architecture | Artifact | Download |
-| -------- | ------------ | -------- | -------- |
-| Linux | x86_64 | `Community_AI-x86_64.AppImage` | [Download](https://github.com/M-Ali-Nasir/community_ai/releases/download/v1.0.0/Community_AI-x86_64.AppImage) |
-| Windows | x86_64 | `Community AI_1.0.0_x64-setup.exe` | [Download](https://github.com/M-Ali-Nasir/community_ai/releases/download/v1.0.0/Community%20AI_1.0.0_x64-setup.exe) |
-| Android | ARM64 | `Community-AI-1.0.0-Android-arm64-TEST.apk` | [Download](https://github.com/M-Ali-Nasir/community_ai/releases/download/v1.0.0/Community-AI-1.0.0-Android-arm64-TEST.apk) |
+| Platform | Download | Verification |
+| --- | --- | --- |
+| Linux x86_64 | [Download AppImage](https://github.com/M-Ali-Nasir/community_ai/releases/download/v1.0.0/Community_AI-x86_64.AppImage) | Build / Install / Runtime verified |
+| Windows x86_64 | [Download Windows Installer](https://github.com/M-Ali-Nasir/community_ai/releases/download/v1.0.0/Community.AI_1.0.0_x64-setup.exe) | Build verified; install/runtime not tested |
+| Android ARM64 | [Download TEST APK](https://github.com/M-Ali-Nasir/community_ai/releases/download/v1.0.0/Community-AI-1.0.0-Android-arm64-TEST.apk) | Build verified; install/runtime not tested |
+
+GitHub stores the Windows installer as `Community.AI_1.0.0_x64-setup.exe` (space replaced with `.`). SHA256 matches the original NSIS file `Community AI_1.0.0_x64-setup.exe`.
 
 All three packages use the same Tauri frontend (`apps/desktop/frontend/`). There is no separate Linux, Windows, or Android UI.
 
@@ -62,7 +64,7 @@ All three packages use the same Tauri frontend (`apps/desktop/frontend/`). There
 
 ### Windows x86_64 — NSIS installer
 
-- Asset: `Community AI_1.0.0_x64-setup.exe`
+- Asset (GitHub): `Community.AI_1.0.0_x64-setup.exe` (original filename `Community AI_1.0.0_x64-setup.exe`)
 - Build: **VERIFIED** · Install: **NOT TESTED** · Runtime: **NOT TESTED**
 - SHA256: `844be9921222c7d8a057ad9c5d5db546a81eb127b73d56611f4c3bd1643267b9`
 - Packaging was a Linux cross-compile. There was no Windows host, so installation and runtime were **not** verified. Authenticode signing was **not** performed.
@@ -114,7 +116,7 @@ If the AppImage cannot FUSE-mount, `APPIMAGE_EXTRACT_AND_RUN=1` is a known worka
 
 ### Windows
 
-1. Download `Community AI_1.0.0_x64-setup.exe`.
+1. Download [`Community.AI_1.0.0_x64-setup.exe`](https://github.com/M-Ali-Nasir/community_ai/releases/download/v1.0.0/Community.AI_1.0.0_x64-setup.exe) from the GitHub Release (same bytes as `Community AI_1.0.0_x64-setup.exe`).
 2. Run the NSIS installer.
 3. Follow the installer instructions.
 4. Launch Community AI.
